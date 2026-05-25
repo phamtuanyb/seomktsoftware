@@ -1,0 +1,89 @@
+{
+  "app": {
+    "name": "MKT SEO AI",
+    "tagline": "End-to-end automated SEO platform for Vietnamese businesses"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "keywords": "Keywords",
+    "content": "Content",
+    "brand_voices": "Brand Voices",
+    "images": "Images",
+    "audit": "SEO Score",
+    "publisher": "Publisher",
+    "webhooks": "Webhooks",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back to MKT SEO AI",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot password?",
+      "no_account": "No account yet?",
+      "create": "Create account",
+      "errors": {
+        "invalid": "Invalid email or password",
+        "generic": "Something went wrong, please try again"
+      }
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Start with a 14-day free trial",
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "password_hint": "Minimum 8 characters, with upper, lower, and a number",
+      "submit": "Create account",
+      "have_account": "Already have an account?",
+      "sign_in": "Sign in",
+      "errors": {
+        "email_taken": "Email is already in use",
+        "generic": "Something went wrong, please try again"
+      }
+    },
+    "forgot_password": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email to receive a reset link",
+      "email": "Email",
+      "submit": "Send link",
+      "back": "Back to sign in",
+      "success": "If the email exists, we sent a reset link"
+    },
+    "reset_password": {
+      "title": "Reset password",
+      "subtitle": "Enter the new password for your account",
+      "password": "New password",
+      "submit": "Set password",
+      "success": "Password reset, please sign in",
+      "error": "Token invalid or expired"
+    }
+  },
+  "landing": {
+    "hero": {
+      "title": "From keyword to published post in 15 minutes",
+      "subtitle": "Automate the entire SEO pipeline: keyword research, brand-voice AI content, WordPress publishing.",
+      "cta_primary": "Start free trial",
+      "cta_secondary": "Watch demo"
+    },
+    "features": {
+      "title": "8 core features in one platform",
+      "subtitle": "Each feature is designed to handle one piece of the SEO pipeline"
+    },
+    "email_capture": {
+      "title": "Get early access",
+      "subtitle": "Drop your email — we'll send the activation link when the beta is ready.",
+      "placeholder": "you@example.com",
+      "submit": "Subscribe",
+      "success": "Thanks! We'll be in touch shortly."
+    }
+  },
+  "dashboard": {
+    "welcome": "Hi, {name}",
+    "plan_badge": "{plan} plan",
+    "pending_sprint": "This feature ships in an upcoming sprint"
+  }
+}

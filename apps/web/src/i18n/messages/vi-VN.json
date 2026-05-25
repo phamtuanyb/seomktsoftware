@@ -1,0 +1,89 @@
+{
+  "app": {
+    "name": "MKT SEO AI",
+    "tagline": "Nền tảng SEO tự động end-to-end cho doanh nghiệp Việt Nam"
+  },
+  "nav": {
+    "dashboard": "Tổng quan",
+    "keywords": "Từ khóa",
+    "content": "Nội dung",
+    "brand_voices": "Brand Voice",
+    "images": "Hình ảnh",
+    "audit": "Chấm điểm SEO",
+    "publisher": "Xuất bản",
+    "webhooks": "Webhook",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất"
+  },
+  "auth": {
+    "login": {
+      "title": "Đăng nhập",
+      "subtitle": "Chào mừng quay lại MKT SEO AI",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "submit": "Đăng nhập",
+      "forgot": "Quên mật khẩu?",
+      "no_account": "Chưa có tài khoản?",
+      "create": "Tạo tài khoản",
+      "errors": {
+        "invalid": "Email hoặc mật khẩu không đúng",
+        "generic": "Có lỗi xảy ra, vui lòng thử lại"
+      }
+    },
+    "register": {
+      "title": "Tạo tài khoản",
+      "subtitle": "Bắt đầu 14 ngày dùng thử miễn phí",
+      "name": "Họ và tên",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "password_hint": "Tối thiểu 8 ký tự, có chữ hoa, chữ thường và số",
+      "submit": "Tạo tài khoản",
+      "have_account": "Đã có tài khoản?",
+      "sign_in": "Đăng nhập",
+      "errors": {
+        "email_taken": "Email đã được sử dụng",
+        "generic": "Có lỗi xảy ra, vui lòng thử lại"
+      }
+    },
+    "forgot_password": {
+      "title": "Quên mật khẩu",
+      "subtitle": "Nhập email để nhận link đặt lại mật khẩu",
+      "email": "Email",
+      "submit": "Gửi link",
+      "back": "Quay về đăng nhập",
+      "success": "Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu"
+    },
+    "reset_password": {
+      "title": "Đặt mật khẩu mới",
+      "subtitle": "Nhập mật khẩu mới cho tài khoản của bạn",
+      "password": "Mật khẩu mới",
+      "submit": "Đặt mật khẩu",
+      "success": "Đặt lại mật khẩu thành công, vui lòng đăng nhập",
+      "error": "Token không hợp lệ hoặc đã hết hạn"
+    }
+  },
+  "landing": {
+    "hero": {
+      "title": "SEO từ khóa đến bài đăng chỉ trong 15 phút",
+      "subtitle": "Tự động hóa toàn bộ pipeline SEO: nghiên cứu từ khóa, sinh nội dung AI đúng brand voice, đăng bài WordPress.",
+      "cta_primary": "Dùng thử miễn phí",
+      "cta_secondary": "Xem demo"
+    },
+    "features": {
+      "title": "8 tính năng cốt lõi trong 1 nền tảng",
+      "subtitle": "Mỗi tính năng được thiết kế để giải quyết một phần của pipeline SEO"
+    },
+    "email_capture": {
+      "title": "Nhận quyền truy cập sớm",
+      "subtitle": "Để lại email — chúng tôi sẽ gửi link kích hoạt khi bản beta sẵn sàng.",
+      "placeholder": "ban@example.com",
+      "submit": "Đăng ký",
+      "success": "Cảm ơn! Chúng tôi sẽ gửi email cho bạn sớm nhất."
+    }
+  },
+  "dashboard": {
+    "welcome": "Xin chào, {name}",
+    "plan_badge": "Gói {plan}",
+    "pending_sprint": "Tính năng này sẽ có trong Sprint sắp tới"
+  }
+}
