@@ -41,12 +41,13 @@ data/redis/
 .DS_Store
 Thumbs.db
 
-# Editor
+# Editor / AI tooling
 .idea/
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 !.vscode/launch.json
+.claude/
 
 # Misc
 *.pem

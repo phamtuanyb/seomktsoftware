@@ -1,0 +1,403 @@
+// Section 7 — 16 tables.
+// UUID v7 strategy: app-layer generation via `uuidv7` package, injected by
+// PrismaService.$extends.create. DB falls back to gen_random_uuid (pgcrypto)
+// if app forgets — both are valid UUIDs, only sortability differs.
+// Naming: snake_case in DB, camelCase in client via @map / @@map.
+
+generator client {
+  provider        = "prisma-client-js"
+  // Native types + Postgres extensions are enabled via `postgresqlExtensions`.
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, pg_trgm]
+}
+
+// -------------------------------------------------------------------------
+// Users & Authentication
+// -------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  name            String?   @db.VarChar(255)
+  phone           String?   @db.VarChar(20)
+  avatarUrl       String?   @map("avatar_url")
+  role            String    @default("user") @db.VarChar(20)
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(6)
+  preferencesJson Json      @default("{}") @map("preferences_json")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  // Relations
+  subscriptions   Subscription[]
+  quotas          Quota[]
+  apiKeys         ApiKey[]
+  keywordProjects KeywordProject[]
+  keywords        Keyword[]
+  brandVoices     BrandVoice[]
+  articles        Article[]
+  images          Image[]
+  sites           Site[]
+  publishJobs     PublishJob[]
+  webhooks        Webhook[]
+  auditLogs       AuditLog[]
+  pluginInstalls  UserPluginInstall[]
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
+}
+
+// -------------------------------------------------------------------------
+// Subscriptions & Billing
+// -------------------------------------------------------------------------
+
+model Subscription {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  plan                 String    @db.VarChar(50) // trial, starter, pro, agency, lifetime
+  status               String    @db.VarChar(20) // active, cancelled, expired, paused
+  startedAt            DateTime  @map("started_at") @db.Timestamp(6)
+  expiresAt            DateTime? @map("expires_at") @db.Timestamp(6)
+  stripeSubscriptionId String?   @map("stripe_subscription_id") @db.VarChar(255)
+  sepayPaymentId       String?   @map("sepay_payment_id") @db.VarChar(255)
+  metadataJson         Json?     @map("metadata_json")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+model Quota {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  resource   String    @db.VarChar(50) // articles, keywords, sites, brand_voices, images
+  period     String    @db.VarChar(20) // monthly, lifetime
+  used       Int       @default(0)
+  limitValue Int       @map("limit_value")
+  resetAt    DateTime? @map("reset_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resource, period])
+  @@map("quotas")
+}
+
+// -------------------------------------------------------------------------
+// API Keys (Phase 2 ready, schema available from MVP)
+// -------------------------------------------------------------------------
+
+model ApiKey {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String?   @db.VarChar(100)
+  keyHash    String    @unique @map("key_hash") @db.VarChar(255)
+  prefix     String    @db.VarChar(10) // "mkt_live_" or "mkt_test_"
+  scopes     String[]
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamp(6)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamp(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+// -------------------------------------------------------------------------
+// Keyword Research (TN1, TN2)
+// -------------------------------------------------------------------------
+
+model KeywordProject {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String    @db.VarChar(255)
+  seedKeyword String?   @map("seed_keyword") @db.VarChar(255)
+  language    String    @default("vi") @db.VarChar(10)
+  country     String    @default("VN") @db.VarChar(10)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keywords Keyword[]
+
+  @@index([userId])
+  @@map("keyword_projects")
+}
+
+model Keyword {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  keyword           String    @db.VarChar(500)
+  source            String?   @db.VarChar(50) // google_suggest, bing, paa, manual
+  volume            Int?
+  keywordDifficulty Int?      @map("keyword_difficulty")
+  cpc               Decimal?  @db.Decimal(10, 2)
+  intent            String?   @db.VarChar(20) // info, commercial, transactional, navigational
+  intentConfidence  Decimal?  @map("intent_confidence") @db.Decimal(3, 2)
+  metadataJson      Json?     @map("metadata_json")
+  analyzedAt        DateTime? @map("analyzed_at") @db.Timestamp(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project KeywordProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId, projectId], map: "idx_keywords_user_project")
+  @@map("keywords")
+}
+
+// -------------------------------------------------------------------------
+// Brand Voices (TN5)
+// -------------------------------------------------------------------------
+
+model BrandVoice {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  name              String    @db.VarChar(255)
+  description       String?
+  profileJson       Json      @map("profile_json")
+  referenceArticles Json      @map("reference_articles")
+  isDefault         Boolean   @default(false) @map("is_default")
+  trainedAt         DateTime  @map("trained_at") @db.Timestamp(6)
+  metadataJson      Json?     @map("metadata_json")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articles Article[]
+
+  @@index([userId], map: "idx_brand_voices_user")
+  @@map("brand_voices")
+}
+
+// -------------------------------------------------------------------------
+// Articles (TN3, TN4, TN7)
+// -------------------------------------------------------------------------
+
+model Article {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  title              String    @db.VarChar(500)
+  slug               String?   @db.VarChar(500)
+  content            String?
+  contentMarkdown    String?   @map("content_markdown")
+  excerpt            String?
+  metaTitle          String?   @map("meta_title") @db.VarChar(255)
+  metaDescription    String?   @map("meta_description") @db.VarChar(500)
+  targetKeyword      String?   @map("target_keyword") @db.VarChar(255)
+  secondaryKeywords  String[]  @map("secondary_keywords")
+  outlineJson        Json?     @map("outline_json")
+  format             String?   @db.VarChar(50)
+  wordCount          Int?      @map("word_count")
+  contentScore       Int?      @map("content_score")
+  scoreBreakdownJson Json?     @map("score_breakdown_json")
+  status             String    @default("draft") @db.VarChar(20)
+  brandVoiceId       String?   @map("brand_voice_id") @db.Uuid
+  featuredImageId    String?   @map("featured_image_id") @db.Uuid
+  aiModelUsed        String?   @map("ai_model_used") @db.VarChar(50)
+  aiCostUsd          Decimal?  @map("ai_cost_usd") @db.Decimal(10, 4)
+  metadataJson       Json?     @map("metadata_json")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brandVoice  BrandVoice?  @relation(fields: [brandVoiceId], references: [id], onDelete: SetNull)
+  images      Image[]
+  publishJobs PublishJob[]
+
+  @@index([userId, status], map: "idx_articles_user_status")
+  @@index([createdAt(sort: Desc)], map: "idx_articles_created")
+  @@map("articles")
+}
+
+// -------------------------------------------------------------------------
+// Images (TN6)
+// -------------------------------------------------------------------------
+
+model Image {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  articleId     String?   @map("article_id") @db.Uuid
+  url           String
+  thumbnailUrl  String?   @map("thumbnail_url")
+  prompt        String?
+  altText       String?   @map("alt_text") @db.VarChar(500)
+  style         String?   @db.VarChar(50)
+  aspectRatio   String?   @map("aspect_ratio") @db.VarChar(20)
+  width         Int?
+  height        Int?
+  fileSizeBytes Int?      @map("file_size_bytes")
+  modelUsed     String?   @map("model_used") @db.VarChar(50)
+  costUsd       Decimal?  @map("cost_usd") @db.Decimal(10, 4)
+  metadataJson  Json?     @map("metadata_json")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("images")
+}
+
+// -------------------------------------------------------------------------
+// Publisher (TN8)
+// -------------------------------------------------------------------------
+
+model Site {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  url                  String    @db.VarChar(500)
+  type                 String    @default("wordpress") @db.VarChar(20)
+  username             String?   @db.VarChar(255)
+  credentialsEncrypted String    @map("credentials_encrypted")
+  status               String    @default("active") @db.VarChar(20)
+  pluginSeoDetected    String?   @map("plugin_seo_detected") @db.VarChar(50)
+  metadataJson         Json?     @map("metadata_json")
+  lastCheckAt          DateTime? @map("last_check_at") @db.Timestamp(6)
+  lastPublishAt        DateTime? @map("last_publish_at") @db.Timestamp(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publishJobs PublishJob[]
+
+  @@index([userId], map: "idx_sites_user")
+  @@map("sites")
+}
+
+model PublishJob {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  articleId    String    @map("article_id") @db.Uuid
+  siteId       String    @map("site_id") @db.Uuid
+  status       String    @db.VarChar(20) // pending, processing, completed, failed, cancelled
+  scheduledAt  DateTime? @map("scheduled_at") @db.Timestamp(6)
+  startedAt    DateTime? @map("started_at") @db.Timestamp(6)
+  completedAt  DateTime? @map("completed_at") @db.Timestamp(6)
+  wpPostId     Int?      @map("wp_post_id")
+  publishedUrl String?   @map("published_url")
+  retryCount   Int       @default(0) @map("retry_count")
+  errorMessage String?   @map("error_message")
+  errorCode    String?   @map("error_code") @db.VarChar(50)
+  payloadJson  Json?     @map("payload_json")
+  responseJson Json?     @map("response_json")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  site    Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt], map: "idx_publish_jobs_status_scheduled")
+  @@index([userId], map: "idx_publish_jobs_user")
+  @@map("publish_jobs")
+}
+
+// -------------------------------------------------------------------------
+// Webhooks (outgoing)
+// -------------------------------------------------------------------------
+
+model Webhook {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  url          String
+  events       String[]
+  secret       String?  @db.VarChar(100)
+  isActive     Boolean  @default(true) @map("is_active")
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([userId])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webhookId      String    @map("webhook_id") @db.Uuid
+  event          String    @db.VarChar(100)
+  payloadJson    Json      @map("payload_json")
+  responseStatus Int?      @map("response_status")
+  responseBody   String?   @map("response_body")
+  attemptCount   Int       @default(1) @map("attempt_count")
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamp(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@map("webhook_deliveries")
+}
+
+// -------------------------------------------------------------------------
+// Audit Log
+// -------------------------------------------------------------------------
+
+model AuditLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  resourceType String?  @map("resource_type") @db.VarChar(50)
+  resourceId   String?  @map("resource_id") @db.Uuid
+  ipAddress    String?  @map("ip_address") @db.Inet
+  userAgent    String?  @map("user_agent")
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, action, createdAt(sort: Desc)], map: "idx_audit_logs_user_action")
+  @@map("audit_logs")
+}
+
+// -------------------------------------------------------------------------
+// Plugin Registry (Phase 2 ready)
+// -------------------------------------------------------------------------
+
+model Plugin {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(255)
+  version     String   @db.VarChar(20)
+  description String?
+  author      String?  @db.VarChar(255)
+  isOfficial  Boolean  @default(false) @map("is_official")
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  configJson  Json?    @map("config_json")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  installs UserPluginInstall[]
+
+  @@map("plugins")
+}
+
+model UserPluginInstall {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  pluginId    String   @map("plugin_id") @db.Uuid
+  configJson  Json?    @map("config_json")
+  isActive    Boolean  @default(true) @map("is_active")
+  installedAt DateTime @default(now()) @map("installed_at") @db.Timestamp(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pluginId])
+  @@map("user_plugin_installs")
+}

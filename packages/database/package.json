@@ -13,13 +13,15 @@
     "prisma"
   ],
   "scripts": {
-    "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "migrate:reset": "prisma migrate reset --force",
-    "seed": "tsx prisma/seed.ts",
-    "studio": "prisma studio",
-    "reset": "prisma migrate reset --force",
+    "generate": "dotenv -e ../../.env -- prisma generate",
+    "migrate": "dotenv -e ../../.env -- prisma migrate deploy",
+    "migrate:dev": "dotenv -e ../../.env -- prisma migrate dev",
+    "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "migrate:create": "dotenv -e ../../.env -- prisma migrate dev --create-only",
+    "migrate:reset": "dotenv -e ../../.env -- prisma migrate reset --force",
+    "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "studio": "dotenv -e ../../.env -- prisma studio",
+    "reset": "dotenv -e ../../.env -- prisma migrate reset --force",
     "lint": "echo 'no source to lint' && exit 0",
     "test": "echo 'no tests yet' && exit 0",
     "format": "prisma format"
@@ -38,6 +40,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.17.10",
     "bcrypt": "^5.1.1",
+    "dotenv-cli": "^7.4.4",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

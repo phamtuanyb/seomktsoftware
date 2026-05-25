@@ -62,6 +62,8 @@ Then:
 - API: <http://localhost:3005/api/v1>
 - Swagger: <http://localhost:3005/docs>
 - Prisma Studio: `pnpm db:studio` → <http://localhost:5555>
+- Postgres: `localhost:5434` (avoids clash with other dev Postgres on 5432/5433)
+- Redis: `localhost:6380` (avoids clash with other dev Redis on 6379)
 
 Default seeded admin: `admin@mkt-seo.local` / `Admin@12345` (change immediately in any shared env).
 

@@ -14,7 +14,8 @@ services:
       POSTGRES_DB: mkt_seo_dev
       POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
     ports:
-      - '5432:5432'
+      # Host 5434 → container 5432. Avoids clash with other dev projects on 5432/5433.
+      - '5434:5432'
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -39,7 +40,8 @@ services:
         'allkeys-lru',
       ]
     ports:
-      - '6379:6379'
+      # Host 6380 → container 6379. Avoids clash with other dev projects on 6379.
+      - '6380:6379'
     volumes:
       - ./data/redis:/data
     healthcheck:
