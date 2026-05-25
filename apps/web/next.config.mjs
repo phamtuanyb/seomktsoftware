@@ -9,16 +9,10 @@ const nextConfig = {
   experimental: {
     typedRoutes: false,
   },
-  async rewrites() {
-    // Proxy non-Next /api/* to the NestJS backend so cookies/CORS stay simple.
-    const target = process.env.API_INTERNAL_URL ?? 'http://localhost:3005';
-    return [
-      {
-        source: '/api/proxy/:path*',
-        destination: `${target}/api/:path*`,
-      },
-    ];
-  },
+  // /api/proxy/* is handled by the catch-all route handler at
+  // src/app/api/proxy/[...path]/route.ts so the server can translate
+  // httpOnly cookies into a Bearer header before forwarding. Do NOT add a
+  // rewrite for /api/proxy — it would bypass the handler.
 };
 
 export default withNextIntl(nextConfig);

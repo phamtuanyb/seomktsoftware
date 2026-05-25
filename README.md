@@ -52,20 +52,39 @@ pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 
-# 4. Run everything
+# 4. Run everything (turbo orchestrates api + web in parallel)
 pnpm dev
 ```
 
 Then:
 
-- Web UI: <http://localhost:3006>
+- Web UI: <http://localhost:3006> (Next.js)
+- Landing: <http://localhost:3006/landing>
+- Login: <http://localhost:3006/login>
 - API: <http://localhost:3005/api/v1>
+- Health: <http://localhost:3005/health>
 - Swagger: <http://localhost:3005/docs>
 - Prisma Studio: `pnpm db:studio` → <http://localhost:5555>
 - Postgres: `localhost:5434` (avoids clash with other dev Postgres on 5432/5433)
 - Redis: `localhost:6380` (avoids clash with other dev Redis on 6379)
 
 Default seeded admin: `admin@mkt-seo.local` / `Admin@12345` (change immediately in any shared env).
+
+### End-to-end smoke check
+
+After `pnpm dev` is up:
+
+```bash
+# 1. Register a brand-new user (the web app sets httpOnly cookies for you)
+curl -X POST http://localhost:3006/api/auth/register \
+  -H 'Content-Type: application/json' -c /tmp/cookies.txt \
+  -d '{"email":"smoke@example.com","password":"P@ssw0rd1","name":"Smoke"}'
+
+# 2. Hit /auth/me through the same-origin proxy
+curl -s http://localhost:3006/api/proxy/v1/auth/me -b /tmp/cookies.txt | jq
+```
+
+Or open <http://localhost:3006/register> in a browser, register, and you should land on the dashboard.
 
 ---
 
