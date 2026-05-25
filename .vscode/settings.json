@@ -1,0 +1,24 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": [{ "pattern": "apps/*" }, { "pattern": "packages/*" }],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "prisma.schemaPath": "packages/database/prisma/schema.prisma",
+  "files.exclude": {
+    "**/.turbo": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/pnpm-lock.yaml": true,
+    "**/dist": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/coverage": true
+  }
+}

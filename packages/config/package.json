@@ -1,0 +1,18 @@
+{
+  "name": "@mkt-seo/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared ESLint, Prettier, and TypeScript configuration for the MKT SEO AI monorepo.",
+  "main": "eslint-base.cjs",
+  "files": [
+    "*.cjs",
+    "*.json"
+  ],
+  "scripts": {
+    "lint": "echo 'no source to lint' && exit 0"
+  },
+  "peerDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}

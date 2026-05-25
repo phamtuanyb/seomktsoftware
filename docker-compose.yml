@@ -1,0 +1,88 @@
+# Section 14 — local dev stack.
+# Default `docker compose up -d` only starts data services (postgres, redis).
+# Add `--profile full` to additionally run api and web from images.
+# For day-to-day work, run `pnpm dev` on the host against the data services.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mkt-seo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mkt
+      POSTGRES_PASSWORD: mkt_dev_pw
+      POSTGRES_DB: mkt_seo_dev
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mkt -d mkt_seo_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mkt-seo-redis
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '256mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+      ]
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ----- Optional: full-stack inside docker (use `--profile full`) -----
+  api:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: mkt-seo-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      DATABASE_URL: postgresql://mkt:mkt_dev_pw@postgres:5432/mkt_seo_dev?schema=public
+      REDIS_URL: redis://redis:6379
+    env_file: .env
+    ports:
+      - '3005:3005'
+
+  web:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: mkt-seo-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      NEXT_PUBLIC_API_URL: http://localhost:3005
+    env_file: .env
+    ports:
+      - '3006:3006'

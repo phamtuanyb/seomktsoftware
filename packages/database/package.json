@@ -1,0 +1,45 @@
+{
+  "name": "@mkt-seo/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prisma schema, client wrapper, and seed (Section 7 — 16 tables).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "prisma"
+  ],
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset --force",
+    "seed": "tsx prisma/seed.ts",
+    "studio": "prisma studio",
+    "reset": "prisma migrate reset --force",
+    "lint": "echo 'no source to lint' && exit 0",
+    "test": "echo 'no tests yet' && exit 0",
+    "format": "prisma format"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "uuidv7": "^1.0.2"
+  },
+  "devDependencies": {
+    "@mkt-seo/config": "workspace:*",
+    "@mkt-seo/shared": "workspace:*",
+    "@types/bcrypt": "^5.0.2",
+    "@types/node": "^20.17.10",
+    "bcrypt": "^5.1.1",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

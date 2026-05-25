@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+data/
+pnpm-lock.yaml
+**/.prisma/**
+**/generated/**
+*.log
