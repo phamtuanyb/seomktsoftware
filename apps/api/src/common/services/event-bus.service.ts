@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Redis as RedisClient } from 'ioredis';
 import { REDIS_PUBLISHER, REDIS_SUBSCRIBER } from './redis.service';
 

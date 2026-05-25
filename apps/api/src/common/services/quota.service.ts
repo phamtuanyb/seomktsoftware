@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PrismaService } from './prisma.service';
-import type { EventBusService } from './event-bus.service';
+import { PrismaService } from './prisma.service';
+import { EventBusService } from './event-bus.service';
 import { type QuotaResource } from '@mkt-seo/shared';
 
 export interface QuotaCheckResult {

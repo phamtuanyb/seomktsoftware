@@ -1,6 +1,5 @@
-import type { CanActivate, ExecutionContext} from '@nestjs/common';
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { ErrorCode, type PlanTier } from '@mkt-seo/shared';
 import { REQUIRE_PLAN_KEY } from '../decorators';
 import type { AuthenticatedUser } from '../decorators/current-user.decorator';

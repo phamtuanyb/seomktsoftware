@@ -1,16 +1,15 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type {
-  HealthCheckService,
-  PrismaHealthIndicator} from '@nestjs/terminus';
 import {
   HealthCheck,
+  HealthCheckService,
+  PrismaHealthIndicator,
   type HealthCheckResult,
 } from '@nestjs/terminus';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { Public } from './common/decorators';
-import type { PrismaService } from './common/services/prisma.service';
-import type { RedisService } from './common/services/redis.service';
+import { PrismaService } from './common/services/prisma.service';
+import { RedisService } from './common/services/redis.service';
 
 @ApiTags('System')
 @Controller({ version: VERSION_NEUTRAL })

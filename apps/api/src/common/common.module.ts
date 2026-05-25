@@ -18,7 +18,7 @@ import { QuotaService } from './services/quota.service';
  */
 @Global()
 @Module({
-  imports: [EventEmitterModule.forRoot({ global: true })],
+  imports: [EventEmitterModule.forRoot()],
   providers: [
     PrismaService,
     {

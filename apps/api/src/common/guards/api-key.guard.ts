@@ -1,10 +1,9 @@
-import type { CanActivate, ExecutionContext} from '@nestjs/common';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { createHash } from 'node:crypto';
 import { ErrorCode } from '@mkt-seo/shared';
 import { REQUIRE_SCOPE_KEY } from '../decorators';
-import type { PrismaService } from '../services/prisma.service';
+import { PrismaService } from '../services/prisma.service';
 
 /**
  * Phase 2 — API key authentication via `X-API-Key` header. Scopes enforced via

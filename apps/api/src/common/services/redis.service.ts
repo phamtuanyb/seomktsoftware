@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import Redis, { type Redis as RedisClient } from 'ioredis';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
