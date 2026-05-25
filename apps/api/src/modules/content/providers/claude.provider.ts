@@ -127,12 +127,15 @@ export class ClaudeProvider implements LlmProvider {
   // ----- stub mode helpers -----
 
   private stubGenerate(opts: LlmGenerateOptions, apiModel: string): LlmGenerateResult {
-    // Heuristic: if the user prompt mentions "outline" → return JSON outline,
-    // otherwise return a long article. Caller decides format by passing the
-    // right prompt; stubs just need to not crash JSON.parse.
-    const isOutline = /outline|h1|sections|JSON/i.test(opts.prompt);
+    // The article prompt explicitly asks for markdown / "Bắt đầu viết:"; the
+    // outline prompt explicitly asks to "Trả về JSON thuần". Use those marker
+    // phrases (not the word "outline" — TN4 prompt embeds the input outline)
+    // so stub mode picks the right fixture.
+    const wantsArticle = /Markdown output only|Bắt đầu viết|Viết một bài viết SEO/i.test(
+      opts.prompt,
+    );
     const keyword = this.guessKeyword(opts.prompt);
-    const content = isOutline ? stubOutlineFor(keyword) : stubArticleFor(keyword);
+    const content = wantsArticle ? stubArticleFor(keyword) : stubOutlineFor(keyword);
     const inputTokens = Math.ceil((opts.prompt.length + (opts.system?.length ?? 0)) / 4);
     const outputTokens = Math.ceil(content.length / 4);
     return {
@@ -166,8 +169,15 @@ export class ClaudeProvider implements LlmProvider {
   }
 
   private guessKeyword(prompt: string): string {
-    const match = prompt.match(/keyword[":\s]+["']?([^"'\n,]{2,80})["']?/i);
-    return match?.[1]?.trim() ?? 'chủ đề mẫu';
+    // Patterns we emit in our prompt templates:
+    //   `keyword: "..."`  /  `===== KEYWORD =====\n...`  /  `keyword "..."`
+    const quoted = prompt.match(/keyword[^\n]*?["“']([^"”'\n]{2,80})["”']/i);
+    if (quoted?.[1]) return quoted[1].trim();
+    const labeled = prompt.match(/===== KEYWORD( CHÍNH)? =====\s*\n([^\n]{2,80})/i);
+    if (labeled?.[2]) return labeled[2].trim();
+    const inline = prompt.match(/keyword[":\s]+([^"'\n,]{2,80})/i);
+    if (inline?.[1]) return inline[1].trim();
+    return 'chủ đề mẫu';
   }
 
   private estimateCost(apiModel: string, tokens: { input: number; output: number }): number {

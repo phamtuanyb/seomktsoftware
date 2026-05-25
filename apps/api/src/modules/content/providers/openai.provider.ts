@@ -121,10 +121,15 @@ export class OpenAiProvider implements LlmProvider {
   // ----- stub mode -----
 
   private stubGenerate(opts: LlmGenerateOptions, apiModel: string): LlmGenerateResult {
-    const isOutline = /outline|h1|sections|JSON/i.test(opts.prompt);
+    const wantsArticle = /Markdown output only|Bắt đầu viết|Viết một bài viết SEO/i.test(
+      opts.prompt,
+    );
+    const labeled = opts.prompt.match(/===== KEYWORD( CHÍNH)? =====\s*\n([^\n]{2,80})/i);
+    const quoted = opts.prompt.match(/keyword[^\n]*?["“']([^"”'\n]{2,80})["”']/i);
+    const inline = opts.prompt.match(/keyword[":\s]+([^"'\n,]{2,80})/i);
     const keyword =
-      opts.prompt.match(/keyword[":\s]+["']?([^"'\n,]{2,80})["']?/i)?.[1]?.trim() ?? 'chủ đề mẫu';
-    const content = isOutline ? stubOutlineFor(keyword) : stubArticleFor(keyword);
+      (labeled?.[2]?.trim() || quoted?.[1]?.trim() || inline?.[1]?.trim()) ?? 'chủ đề mẫu';
+    const content = wantsArticle ? stubArticleFor(keyword) : stubOutlineFor(keyword);
     return {
       content,
       tokensUsed: { input: 100, output: 800 },

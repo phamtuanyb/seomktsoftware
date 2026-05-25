@@ -6,6 +6,8 @@ import { LlmRegistry } from './providers/llm-registry.service';
 import { LLM_PROVIDER_CLAUDE, LLM_PROVIDER_OPENAI } from './providers/llm-provider.interface';
 import { SerpService } from './services/serp.service';
 import { OutlineService } from './services/outline.service';
+import { ArticleService } from './services/article.service';
+import { ArticlePostProcessService } from './services/article-post-process.service';
 
 /** Section 8 — TN3 outline + TN4 article (streaming). */
 @Module({
@@ -13,12 +15,14 @@ import { OutlineService } from './services/outline.service';
   providers: [
     SerpService,
     OutlineService,
+    ArticleService,
+    ArticlePostProcessService,
     ClaudeProvider,
     OpenAiProvider,
     { provide: LLM_PROVIDER_CLAUDE, useExisting: ClaudeProvider },
     { provide: LLM_PROVIDER_OPENAI, useExisting: OpenAiProvider },
     LlmRegistry,
   ],
-  exports: [OutlineService, LlmRegistry],
+  exports: [OutlineService, ArticleService, ArticlePostProcessService, LlmRegistry],
 })
 export class ContentModule {}
