@@ -1,5 +1,5 @@
-# Section 14 — CI pipeline. Lint + unit tests + integration tests + build.
-# Integration tests boot real Postgres + Redis services.
+# Section 14 Sprint 14 — CI pipeline.
+# Lint + typecheck + build + unit + integration + e2e (API) + e2e (web Playwright) + load smoke.
 
 name: CI
 
@@ -9,31 +9,33 @@ on:
   pull_request:
     branches: [main, staging]
 
+# Newer commits on the same PR cancel older runs to save runner minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   NODE_VERSION: '20'
   PNPM_VERSION: '9.15.0'
+  CI: 'true'
 
 jobs:
   lint-and-build:
-    name: Lint + Build
+    name: Lint + typecheck + build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
@@ -44,27 +46,34 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @mkt-seo/shared build
 
-      - name: Lint
+      - name: Lint (API + web)
         run: pnpm lint
+
+      - name: Type-check web
+        run: pnpm --filter @mkt-seo/web exec tsc --noEmit
 
       - name: Build all
         run: pnpm build
 
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next/
+          retention-days: 1
+          if-no-files-found: ignore
+
   unit-tests:
-    name: Unit tests
+    name: Unit tests (API)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -95,7 +104,7 @@ jobs:
           retention-days: 7
 
   integration-tests:
-    name: Integration tests
+    name: Integration tests (API)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -122,15 +131,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -161,3 +166,244 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: ci_test_jwt_secret_minimum_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  api-e2e:
+    name: API e2e (Sprint 14.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [integration-tests]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mkt_seo_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enable required Postgres extensions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d mkt_seo_test -c "CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
+      - name: Generate Prisma client + apply migrations
+        run: |
+          pnpm --filter @mkt-seo/database generate
+          pnpm --filter @mkt-seo/database migrate:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+
+      - name: Build shared package
+        run: pnpm --filter @mkt-seo/shared build
+
+      - name: Run e2e tests
+        run: pnpm --filter @mkt-seo/api test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci_test_jwt_secret_minimum_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  web-e2e:
+    name: Web e2e — Playwright (Sprint 14.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [api-e2e]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mkt_seo_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Enable required Postgres extensions
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d mkt_seo_test -c "CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
+      - name: Generate Prisma client + apply migrations
+        run: |
+          pnpm --filter @mkt-seo/database generate
+          pnpm --filter @mkt-seo/database migrate:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+
+      - name: Build shared + apps
+        run: |
+          pnpm --filter @mkt-seo/shared build
+          pnpm --filter @mkt-seo/api build
+          pnpm --filter @mkt-seo/web build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @mkt-seo/web exec playwright install --with-deps chromium
+
+      - name: Start API in background
+        run: |
+          pnpm --filter @mkt-seo/api start:prod &
+          # Wait for /health to become reachable (60s budget).
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3010/health >/dev/null; then
+              echo "API ready"; break
+            fi
+            sleep 1
+          done
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          PORT: '3010'
+          JWT_SECRET: ci_test_jwt_secret_minimum_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          NODE_ENV: production
+
+      - name: Run Playwright tests
+        run: pnpm --filter @mkt-seo/web test:e2e
+        env:
+          CI: 'true'
+          WEB_PORT: '3006'
+          WEB_BASE_URL: http://127.0.0.1:3006
+          API_INTERNAL_URL: http://127.0.0.1:3010
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3006
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  load-smoke:
+    name: Load smoke — autocannon (Sprint 14.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [integration-tests]
+    # Don't gate PRs on load thresholds — flaky on shared CI runners. Surface it
+    # as informational on push to main/staging.
+    if: github.event_name == 'push'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mkt_seo_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d mkt_seo_test -c "CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
+      - run: |
+          pnpm --filter @mkt-seo/database generate
+          pnpm --filter @mkt-seo/database migrate:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+
+      - run: |
+          pnpm --filter @mkt-seo/shared build
+          pnpm --filter @mkt-seo/api build
+
+      - name: Start API in background
+        run: |
+          pnpm --filter @mkt-seo/api start:prod &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3010/health >/dev/null; then break; fi
+            sleep 1
+          done
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mkt_seo_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          PORT: '3010'
+          JWT_SECRET: ci_test_jwt_secret_minimum_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          NODE_ENV: production
+
+      - name: Run load smoke
+        run: pnpm --filter @mkt-seo/api load:smoke
+        env:
+          BASE_URL: http://127.0.0.1:3010
+          DURATION: '10'
+          CONNECTIONS: '20'
