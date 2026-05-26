@@ -1,20 +1,30 @@
-import { Body, Controller, NotImplementedException, Post } from '@nestjs/common';
+import { Body, Controller, NotImplementedException, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuditService } from './services/audit.service';
+import { AutoFixDto, ScoreContentDto } from './dto/score.dto';
 
-/** Section 8 — TN7 Content Score (12 rules via Chain of Responsibility). Sprint 5. */
+/** Section 8 — TN7 Content Score (12 rules via Chain of Responsibility). */
 @ApiTags('Audit')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller({ path: 'audit', version: '1' })
 export class AuditController {
+  constructor(private readonly audits: AuditService) {}
+
   @Post('score')
-  @ApiOperation({ summary: 'TN7 — Compute 0-100 SEO content score' })
-  score(@Body() _body: unknown): never {
-    throw new NotImplementedException('Pending Sprint 5 — TN7');
+  @ApiOperation({
+    summary:
+      'TN7 — Compute 0-100 SEO content score across 12 rules. Accepts article_id OR inline (title + content). Persists back to article row when article_id supplied.',
+  })
+  score(@Body() dto: ScoreContentDto, @CurrentUser('id') userId: string) {
+    return this.audits.score(dto, userId);
   }
 
   @Post('auto-fix')
-  @ApiOperation({ summary: 'TN7 — Auto-fix rules scoring < 80 via AI' })
-  autoFix(@Body() _body: unknown): never {
-    throw new NotImplementedException('Pending Sprint 5 — TN7');
+  @ApiOperation({ summary: 'TN7 — Auto-fix rules scoring < 80 via Claude (Sprint 7.3)' })
+  autoFix(@Body() _dto: AutoFixDto): never {
+    throw new NotImplementedException('Pending Sprint 7.3 — auto-fix');
   }
 }
