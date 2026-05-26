@@ -25,6 +25,7 @@ import { PublisherModule } from './modules/publisher/publisher.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PipelineModule } from './modules/pipeline/pipeline.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -73,6 +74,7 @@ import { AppController } from './app.controller';
     WebhooksModule,
     PluginsModule,
     AdminModule,
+    PipelineModule,
   ],
   controllers: [AppController],
   providers: [

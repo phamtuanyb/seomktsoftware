@@ -48,6 +48,7 @@ model User {
   webhooks        Webhook[]
   auditLogs       AuditLog[]
   pluginInstalls  UserPluginInstall[]
+  pipelineRuns    PipelineRun[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -364,6 +365,32 @@ model AuditLog {
 
   @@index([userId, action, createdAt(sort: Desc)], map: "idx_audit_logs_user_action")
   @@map("audit_logs")
+}
+
+// -------------------------------------------------------------------------
+// Pipeline Runs (Sprint 15 — Section 3 end-to-end orchestrator)
+// -------------------------------------------------------------------------
+
+model PipelineRun {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  status          String    @default("pending") @db.VarChar(20) // pending, running, succeeded, failed, cancelled
+  inputJson       Json      @map("input_json")
+  stepsJson       Json      @default("[]") @map("steps_json")
+  // Convenience pointers populated as steps complete.
+  outlineId       String?   @map("outline_id") @db.Uuid
+  articleId       String?   @map("article_id") @db.Uuid
+  publishJobId    String?   @map("publish_job_id") @db.Uuid
+  errorMessage    String?   @map("error_message")
+  startedAt       DateTime? @map("started_at") @db.Timestamp(6)
+  completedAt     DateTime? @map("completed_at") @db.Timestamp(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_pipeline_runs_user")
+  @@map("pipeline_runs")
 }
 
 // -------------------------------------------------------------------------

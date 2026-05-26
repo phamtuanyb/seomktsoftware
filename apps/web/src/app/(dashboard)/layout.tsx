@@ -7,6 +7,7 @@ import {
   KeyRound,
   LayoutDashboard,
   Mic2,
+  PlayCircle,
   Send,
   Settings,
   Shield,
@@ -19,6 +20,7 @@ import { readAccessToken } from '@/lib/auth/session';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { href: '/pipeline', label: 'Pipeline', icon: PlayCircle },
   { href: '/keywords', label: 'Từ khóa', icon: KeyRound },
   { href: '/content', label: 'Nội dung', icon: FileText },
   { href: '/articles', label: 'Bài viết', icon: Files },
