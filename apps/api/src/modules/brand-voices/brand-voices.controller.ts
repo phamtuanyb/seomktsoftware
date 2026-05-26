@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotImplementedException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -21,7 +20,7 @@ import { QuotaService } from '../../common/services/quota.service';
 import { BrandVoicesService } from './brand-voices.service';
 import { CreateBrandVoiceDto, UpdateBrandVoiceDto } from './dto/create-brand-voice.dto';
 
-/** Section 8 TN5 — Brand Voice CRUD. Training algorithm lands in Sprint 7+. */
+/** Section 8 TN5 — Brand Voice CRUD + Claude Sonnet 4 training. */
 @ApiTags('Brand Voices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -42,7 +41,8 @@ export class BrandVoicesController {
   @UseGuards(QuotaGuard)
   @RequireQuota('brand_voices', 1)
   @ApiOperation({
-    summary: 'Create brand voice from 3-20 sample articles. Consumes 1 brand_voices quota.',
+    summary:
+      'Create brand voice from 3-20 sample articles. Fetches URLs via Readability, sends to Claude Sonnet 4 for profile extraction. Consumes 1 brand_voices quota.',
   })
   async create(@Body() dto: CreateBrandVoiceDto, @CurrentUser('id') userId: string) {
     const created = await this.brandVoices.create(userId, dto);
@@ -51,7 +51,7 @@ export class BrandVoicesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get brand voice detail (profile + reference articles)' })
+  @ApiOperation({ summary: 'Get brand voice detail (profile + reference articles + meta)' })
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.brandVoices.get(userId, id);
   }
@@ -74,10 +74,11 @@ export class BrandVoicesController {
   }
 
   @Post(':id/train')
-  @ApiOperation({ summary: 'Re-run training (placeholder — full algorithm lands Sprint 7+)' })
-  retrain(@Param('id', ParseUUIDPipe) _id: string): never {
-    throw new NotImplementedException(
-      'Full training algorithm pending Sprint 7. For now use POST /brand-voices with profile_json.',
-    );
+  @ApiOperation({
+    summary:
+      'Re-run training on existing reference articles. Uses Claude Sonnet 4 (auto-falls back to heuristic when key is placeholder).',
+  })
+  retrain(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.brandVoices.retrain(userId, id);
   }
 }

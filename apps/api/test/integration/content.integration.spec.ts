@@ -1,6 +1,7 @@
 import { type INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import bcrypt from 'bcrypt';
 import { uuidv7 } from 'uuidv7';
@@ -23,6 +24,7 @@ class NoopGuard {
 describe('Content (integration) — TN3 + TN4 + TN5', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let jwtService: JwtService;
   let userId: string;
   let accessToken: string;
 
@@ -41,6 +43,7 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    jwtService = app.get(JwtService);
   });
 
   beforeEach(async () => {
@@ -87,15 +90,16 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
       },
     });
 
-    // Log in to get an access token (real /auth/login).
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({
-        email: (await prisma.user.findUnique({ where: { id: userId } }))!.email,
-        password: 'TestPass@1',
-      });
-    expect(res.status).toBe(200);
-    accessToken = res.body.data.tokens.access_token;
+    // Mint JWT directly to bypass /auth/login throttler (10/hr) — 12+ tests
+    // in this file would otherwise burn the budget after a single CI run.
+    const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+    accessToken = jwtService.sign({
+      sub: userId,
+      email: dbUser!.email,
+      plan: 'agency',
+      role: 'user',
+      jti: uuidv7(),
+    });
   });
 
   afterAll(async () => {
@@ -271,7 +275,7 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
   // ----- TN5 -----
 
   describe('POST /brand-voices (TN5)', () => {
-    it('creates a brand voice with placeholder profile', async () => {
+    it('creates a brand voice + Zod-validated profile + heuristic meta in stub mode', async () => {
       const sample = 'a'.repeat(600);
       const res = await request(app.getHttpServer())
         .post('/api/v1/brand-voices')
@@ -290,7 +294,22 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.sample_count).toBe(3);
       expect(res.body.data.is_default).toBe(true);
-      expect(res.body.data.profile_json._meta.algorithm).toBe('placeholder-heuristic');
+
+      // Sprint 9 — meta moved out of profile_json into its own field.
+      expect(res.body.data.meta.algorithm).toBe('placeholder-heuristic');
+      expect(res.body.data.meta.sample_count).toBe(3);
+      expect(res.body.data.meta.upgraded_to_real_at).toBeNull();
+
+      // Profile shape (Zod-validated heuristic fallback).
+      const profile = res.body.data.profile_json;
+      expect(profile.tone.primary).toBeTruthy();
+      expect(profile.sentence_structure.avg_words_per_sentence).toBeGreaterThanOrEqual(3);
+      expect(profile.addressing.primary).toBeTruthy();
+      expect(profile.emoji_usage).toBeDefined();
+      expect(profile.patterns.opening_style).toBeTruthy();
+
+      // Reference articles — trainer picks longest 3.
+      expect(res.body.data.reference_articles).toHaveLength(3);
 
       const list = await request(app.getHttpServer())
         .get('/api/v1/brand-voices')
@@ -309,6 +328,46 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
+    });
+
+    it('POST /brand-voices/:id/train re-runs training and bumps trained_at', async () => {
+      const sample = 'c'.repeat(600);
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/brand-voices')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Retrain BV',
+          sample_articles: [{ content: sample }, { content: sample }, { content: sample }],
+        })
+        .expect(201);
+
+      const firstTrainedAt = created.body.data.trained_at;
+      // Wait 10ms so retrain timestamp differs.
+      await new Promise((r) => setTimeout(r, 10));
+
+      const retrain = await request(app.getHttpServer())
+        .post(`/api/v1/brand-voices/${created.body.data.id}/train`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(201);
+
+      expect(retrain.body.success).toBe(true);
+      expect(retrain.body.data.id).toBe(created.body.data.id);
+      expect(retrain.body.data.meta.algorithm).toBe('placeholder-heuristic');
+      expect(new Date(retrain.body.data.trained_at).getTime()).toBeGreaterThan(
+        new Date(firstTrainedAt).getTime(),
+      );
+    });
+
+    it('rejects sample_articles with content <200 chars and no url', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/brand-voices')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Too short',
+          sample_articles: [{ content: 'short' }, { content: 'still short' }, { content: 'nope' }],
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

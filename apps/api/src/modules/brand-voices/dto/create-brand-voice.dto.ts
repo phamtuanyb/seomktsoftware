@@ -23,11 +23,11 @@ class SampleArticleDto {
 
   @ApiProperty({
     required: false,
-    description: 'Inline article content (≥500 chars) OR provide url.',
+    description: 'Inline article content (≥200 chars) OR provide url to fetch via readability.',
   })
   @IsOptional()
   @IsString()
-  @MinLength(500)
+  @MinLength(200)
   content?: string;
 
   @ApiProperty({

@@ -183,11 +183,23 @@ export interface BrandVoiceListItem {
   trained_at: string;
   created_at: string;
   updated_at: string;
+  algorithm: 'claude-sonnet-4' | 'placeholder-heuristic';
+}
+
+/** Section 8 TN5 — profile training meta (algorithm + tokens + cost). */
+export interface BrandVoiceMeta {
+  algorithm: 'claude-sonnet-4' | 'placeholder-heuristic';
+  upgraded_to_real_at: string | null;
+  sample_count: number;
+  trained_at: string;
+  tokens_used?: { input: number; output: number };
+  cost_usd?: number;
 }
 
 export interface BrandVoiceDetail extends BrandVoiceListItem {
   profile_json: Record<string, unknown>;
   reference_articles: Array<{ title?: string | null; content: string }>;
+  meta: BrandVoiceMeta;
 }
 
 export interface CreateBrandVoiceRequest {
@@ -205,4 +217,5 @@ export const brandVoicesApi = {
   update: (id: string, body: Partial<CreateBrandVoiceRequest>) =>
     api.patch<BrandVoiceDetail>(`/brand-voices/${id}`, body),
   remove: (id: string) => api.delete<{ id: string }>(`/brand-voices/${id}`),
+  retrain: (id: string) => api.post<BrandVoiceDetail>(`/brand-voices/${id}/train`, {}),
 };

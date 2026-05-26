@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,17 @@ import {
 interface SampleArticleInput {
   title: string;
   content: string;
+  url: string;
+}
+
+const MIN_CONTENT = 200;
+
+function emptySamples(): SampleArticleInput[] {
+  return [
+    { title: '', content: '', url: '' },
+    { title: '', content: '', url: '' },
+    { title: '', content: '', url: '' },
+  ];
 }
 
 export default function BrandVoicesPage() {
@@ -23,12 +34,9 @@ export default function BrandVoicesPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [samples, setSamples] = useState<SampleArticleInput[]>([
-    { title: '', content: '' },
-    { title: '', content: '' },
-    { title: '', content: '' },
-  ]);
+  const [samples, setSamples] = useState<SampleArticleInput[]>(emptySamples());
   const [submitting, setSubmitting] = useState(false);
+  const [retrainingId, setRetrainingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -49,25 +57,31 @@ export default function BrandVoicesPage() {
     setSuccess(null);
     setSubmitting(true);
     try {
+      const cleaned = samples
+        .map((s) => ({
+          title: s.title.trim() || undefined,
+          content: s.content.trim().length >= MIN_CONTENT ? s.content : undefined,
+          url: s.url.trim() || undefined,
+        }))
+        .filter((s) => s.content || s.url);
+
+      if (cleaned.length < 3) {
+        throw new Error(
+          `Cần ≥3 bài mẫu. Mỗi bài hoặc nhập content ≥${MIN_CONTENT} ký tự, hoặc paste URL để hệ thống fetch.`,
+        );
+      }
       const body: CreateBrandVoiceRequest = {
         name: name.trim(),
         description: description.trim() || undefined,
-        sample_articles: samples
-          .filter((s) => s.content.trim().length >= 500)
-          .map((s) => ({ title: s.title.trim() || undefined, content: s.content })),
+        sample_articles: cleaned,
       };
-      if (body.sample_articles.length < 3) {
-        throw new Error('Cần ≥3 bài mẫu, mỗi bài ≥500 ký tự.');
-      }
       const created = await brandVoicesApi.create(body);
-      setSuccess(`Đã tạo brand voice "${created.name}". Sample: ${created.sample_count}.`);
+      const tag =
+        created.meta.algorithm === 'claude-sonnet-4' ? 'Claude Sonnet 4' : 'heuristic stub';
+      setSuccess(`Đã tạo brand voice "${created.name}" (${tag}, ${created.sample_count} bài mẫu).`);
       setName('');
       setDescription('');
-      setSamples([
-        { title: '', content: '' },
-        { title: '', content: '' },
-        { title: '', content: '' },
-      ]);
+      setSamples(emptySamples());
       refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -86,13 +100,29 @@ export default function BrandVoicesPage() {
     }
   }
 
+  async function handleRetrain(id: string) {
+    setRetrainingId(id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const bv = await brandVoicesApi.retrain(id);
+      const tag = bv.meta.algorithm === 'claude-sonnet-4' ? 'Claude Sonnet 4' : 'heuristic stub';
+      setSuccess(`Đã re-train "${bv.name}" (${tag}).`);
+      refresh();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRetrainingId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Brand Voice</h1>
         <p className="text-sm text-muted-foreground">
-          Section 8 TN5 — học phong cách brand từ 3-20 bài mẫu. Sprint 5.6 dùng heuristic profile;
-          Claude profile extractor lên ở sprint sau.
+          Section 8 TN5 — học phong cách brand từ 3-20 bài mẫu. Hệ thống gọi Claude Sonnet 4 để
+          trích Profile JSON; khi không có API key sẽ fallback heuristic deterministic.
         </p>
       </div>
 
@@ -118,6 +148,20 @@ export default function BrandVoicesPage() {
                           mặc định
                         </span>
                       )}
+                      <span
+                        className={`ml-2 rounded px-2 py-0.5 text-xs ${
+                          bv.algorithm === 'claude-sonnet-4'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                        title={
+                          bv.algorithm === 'claude-sonnet-4'
+                            ? 'Profile được trích bằng Claude Sonnet 4.'
+                            : 'Stub heuristic — chưa có ANTHROPIC_API_KEY hợp lệ.'
+                        }
+                      >
+                        {bv.algorithm === 'claude-sonnet-4' ? 'Claude Sonnet 4' : 'heuristic'}
+                      </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {bv.sample_count} sample · trained {new Date(bv.trained_at).toLocaleString()}
@@ -126,14 +170,30 @@ export default function BrandVoicesPage() {
                       <p className="mt-1 text-sm text-muted-foreground">{bv.description}</p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(bv.id)}
-                    aria-label="Xoá"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRetrain(bv.id)}
+                      disabled={retrainingId === bv.id}
+                      aria-label="Re-train"
+                      title="Re-train từ reference articles hiện tại"
+                    >
+                      {retrainingId === bv.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(bv.id)}
+                      aria-label="Xoá"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -145,7 +205,8 @@ export default function BrandVoicesPage() {
         <CardHeader>
           <CardTitle>Tạo brand voice mới</CardTitle>
           <CardDescription>
-            Nhập ít nhất 3 bài mẫu (mỗi bài ≥500 ký tự). Tốn 1 quota brand_voices.
+            Nhập ít nhất 3 bài mẫu (mỗi bài ≥{MIN_CONTENT} ký tự HOẶC paste URL — hệ thống tự fetch
+            qua Readability). Tốn 1 quota brand_voices.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,8 +246,18 @@ export default function BrandVoicesPage() {
                       setSamples(next);
                     }}
                   />
+                  <Input
+                    placeholder="URL bài viết (tuỳ chọn — hệ thống sẽ fetch nếu để trống content)"
+                    type="url"
+                    value={s.url}
+                    onChange={(e) => {
+                      const next = [...samples];
+                      next[i] = { ...next[i]!, url: e.target.value };
+                      setSamples(next);
+                    }}
+                  />
                   <Textarea
-                    placeholder={`Nội dung bài ${i + 1} (≥500 ký tự)`}
+                    placeholder={`Hoặc paste nội dung bài ${i + 1} (≥${MIN_CONTENT} ký tự)`}
                     rows={6}
                     value={s.content}
                     onChange={(e) => {
@@ -196,7 +267,9 @@ export default function BrandVoicesPage() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {s.content.length}/500 ký tự tối thiểu
+                    {s.url.trim()
+                      ? 'Sẽ fetch URL nếu content trống.'
+                      : `${s.content.length}/${MIN_CONTENT} ký tự tối thiểu`}
                   </p>
                 </div>
               ))}
@@ -205,7 +278,7 @@ export default function BrandVoicesPage() {
                 variant="ghost"
                 size="sm"
                 disabled={samples.length >= 20}
-                onClick={() => setSamples([...samples, { title: '', content: '' }])}
+                onClick={() => setSamples([...samples, { title: '', content: '', url: '' }])}
               >
                 <Plus className="mr-2 h-4 w-4" /> Thêm bài mẫu
               </Button>
@@ -217,7 +290,7 @@ export default function BrandVoicesPage() {
             <Button type="submit" disabled={submitting}>
               {submitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tạo...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang train (Claude Sonnet 4)...
                 </>
               ) : (
                 'Tạo brand voice'
