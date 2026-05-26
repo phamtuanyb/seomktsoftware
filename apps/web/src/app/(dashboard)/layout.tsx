@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   BarChart3,
   FileText,
+  Files,
   Image as ImageIcon,
   KeyRound,
   LayoutDashboard,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
   { href: '/keywords', label: 'Từ khóa', icon: KeyRound },
   { href: '/content', label: 'Nội dung', icon: FileText },
+  { href: '/articles', label: 'Bài viết', icon: Files },
   { href: '/brand-voices', label: 'Brand Voice', icon: Mic2 },
   { href: '/images', label: 'Hình ảnh', icon: ImageIcon },
   { href: '/audit', label: 'Chấm điểm SEO', icon: BarChart3 },

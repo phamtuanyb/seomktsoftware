@@ -29,12 +29,12 @@ export default function AuditPage() {
 
   useEffect(() => {
     contentApi
-      .listArticles()
-      .then((rows) => {
-        setArticles(rows);
-        if (rows[0]) {
-          setSelectedId(rows[0].id);
-          setKeyword(rows[0].target_keyword);
+      .listArticles({ limit: 50 })
+      .then((res) => {
+        setArticles(res.items);
+        if (res.items[0]) {
+          setSelectedId(res.items[0].id);
+          setKeyword(res.items[0].target_keyword);
         }
       })
       .catch(() => {

@@ -4,10 +4,13 @@ import {
   Delete,
   Get,
   Headers,
-  NotImplementedException,
+  HttpCode,
+  HttpStatus,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -21,10 +24,10 @@ import { QuotaGuard } from '../../common/guards/quota.guard';
 import { QuotaService } from '../../common/services/quota.service';
 import { GenerateOutlineDto } from './dto/generate-outline.dto';
 import { GenerateArticleDto } from './dto/generate-article.dto';
+import { ListArticlesQueryDto, UpdateArticleDto } from './dto/update-article.dto';
 import { OutlineService } from './services/outline.service';
 import { ArticleService } from './services/article.service';
 import type { OutlineWithMetadata } from './schemas/outline.schema';
-import type { ArticleResult } from './services/article.service';
 
 /** Section 8 — TN3 outline (live) + TN4 article writer (live with SSE). */
 @ApiTags('Content')
@@ -118,46 +121,39 @@ export class ContentController {
 
   @Get('articles')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'List articles (cursor pagination per Section 6)' })
-  async listArticles(@CurrentUser('id') userId: string): Promise<ArticleResult[]> {
-    // Sprint 5.7 / Sprint 6 brings cursor pagination + filters. MVP: most-recent 50.
-    const rows = await this.articles['prisma'].article.findMany({
-      where: { userId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-    return rows.map((r) =>
-      this.articles['toResult'](r as Parameters<ArticleService['toResult']>[0], false),
-    );
+  @ApiOperation({
+    summary: 'List articles (cursor pagination per Section 6 — cursor + limit, has_more)',
+  })
+  listArticles(@CurrentUser('id') userId: string, @Query() query: ListArticlesQueryDto) {
+    return this.articles.list(userId, query);
   }
 
   @Get('articles/:id')
   @UseGuards(JwtAuthGuard)
-  async getArticle(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ): Promise<ArticleResult> {
-    const row = await this.articles['prisma'].article.findFirst({
-      where: { id, userId, deletedAt: null },
-    });
-    if (!row) {
-      throw new NotImplementedException({
-        code: 'RESOURCE_NOT_FOUND',
-        message: 'Không tìm thấy bài viết',
-      });
-    }
-    return this.articles['toResult'](row as Parameters<ArticleService['toResult']>[0], false);
+  @ApiOperation({ summary: 'Article detail (markdown + HTML + score breakdown).' })
+  getArticle(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.articles.get(userId, id);
   }
 
   @Patch('articles/:id')
   @UseGuards(JwtAuthGuard)
-  updateArticle(@Param('id') _id: string): never {
-    throw new NotImplementedException('Editor save endpoint pending Sprint 5.7');
+  @ApiOperation({
+    summary:
+      'Editor save — partial update. Setting content_markdown re-renders HTML + recomputes word_count.',
+  })
+  updateArticle(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateArticleDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.articles.update(userId, id, dto);
   }
 
   @Delete('articles/:id')
   @UseGuards(JwtAuthGuard)
-  deleteArticle(@Param('id') _id: string): never {
-    throw new NotImplementedException('Delete endpoint pending Sprint 5.7');
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Soft-delete article (status → deleted, deleted_at set).' })
+  deleteArticle(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.articles.remove(userId, id);
   }
 }

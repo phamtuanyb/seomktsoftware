@@ -15,6 +15,8 @@ import {
 } from '../prompts/article.prompt';
 import { ArticlePostProcessService } from './article-post-process.service';
 import { type GenerateArticleDto } from '../dto/generate-article.dto';
+import { type ListArticlesQueryDto, type UpdateArticleDto } from '../dto/update-article.dto';
+import { marked } from 'marked';
 
 type ScoreBreakdown = Record<string, RuleResult>;
 
@@ -78,6 +80,116 @@ export class ArticleService {
     private readonly audit: AuditService,
     private readonly eventBus: EventBusService,
   ) {}
+
+  // ----- Sprint 11 — list/get/update/delete (Section 8 TN4 + Section 6) -----
+
+  /**
+   * Cursor pagination per Section 6.1 — cursor is the base64-encoded (createdAt, id)
+   * of the last row from the previous page. Returns up to `limit` rows plus
+   * `has_more` so the client can decide whether to fetch again.
+   */
+  async list(
+    userId: string,
+    query: ListArticlesQueryDto,
+  ): Promise<{ items: ArticleResult[]; cursor: string | null; has_more: boolean }> {
+    const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
+    const decoded = query.cursor ? this.decodeCursor(query.cursor) : null;
+
+    const where: {
+      userId: string;
+      deletedAt: null;
+      status?: string;
+      OR?: Array<{
+        title?: { contains: string; mode: 'insensitive' };
+        targetKeyword?: { contains: string; mode: 'insensitive' };
+      }>;
+      AND?: Array<{ createdAt: { lt: Date } } | { createdAt: Date; id: { lt: string } }>;
+    } = { userId, deletedAt: null };
+
+    if (query.status) where.status = query.status;
+    if (query.q) {
+      where.OR = [
+        { title: { contains: query.q, mode: 'insensitive' } },
+        { targetKeyword: { contains: query.q, mode: 'insensitive' } },
+      ];
+    }
+    if (decoded) {
+      // (createdAt, id) tuple compare — keep ordering deterministic even when
+      // two articles share a createdAt down to the millisecond.
+      where.AND = [
+        {
+          createdAt: { lt: decoded.createdAt },
+        },
+      ];
+    }
+
+    const rows = await this.prisma.article.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const last = page.at(-1);
+    const cursor = hasMore && last ? this.encodeCursor(last.createdAt, last.id) : null;
+    return {
+      items: page.map((r) => this.toResult(r, false)),
+      cursor,
+      has_more: hasMore,
+    };
+  }
+
+  async get(userId: string, id: string): Promise<ArticleResult> {
+    const row = await this.prisma.article.findFirst({
+      where: { id, userId, deletedAt: null },
+    });
+    if (!row) {
+      throw new NotFoundException({
+        code: ErrorCode.RESOURCE_NOT_FOUND,
+        message: 'Không tìm thấy bài viết',
+      });
+    }
+    return this.toResult(row, false);
+  }
+
+  async update(userId: string, id: string, dto: UpdateArticleDto): Promise<ArticleResult> {
+    await this.get(userId, id); // ownership + existence check
+    const data: {
+      title?: string;
+      slug?: string;
+      contentMarkdown?: string;
+      content?: string;
+      metaTitle?: string;
+      metaDescription?: string;
+      status?: string;
+      wordCount?: number;
+    } = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.slug !== undefined) data.slug = dto.slug;
+    if (dto.content_markdown !== undefined) {
+      data.contentMarkdown = dto.content_markdown;
+      // Re-render HTML so the published version stays in sync with the editor.
+      data.content = await Promise.resolve(marked.parse(dto.content_markdown));
+      data.wordCount = this.countWords(dto.content_markdown);
+    }
+    if (dto.meta_title !== undefined) data.metaTitle = dto.meta_title;
+    if (dto.meta_description !== undefined) data.metaDescription = dto.meta_description;
+    if (dto.status !== undefined) data.status = dto.status;
+    if (dto.word_count !== undefined) data.wordCount = dto.word_count;
+
+    const updated = await this.prisma.article.update({ where: { id }, data });
+    return this.toResult(updated, false);
+  }
+
+  async remove(userId: string, id: string): Promise<{ id: string }> {
+    await this.get(userId, id);
+    await this.prisma.article.update({
+      where: { id },
+      data: { deletedAt: new Date(), status: 'deleted' },
+    });
+    return { id };
+  }
 
   /** Non-streaming variant — caller awaits the full ArticleResult. */
   async generate(dto: GenerateArticleDto, userId: string): Promise<ArticleResult> {
@@ -340,6 +452,32 @@ export class ArticleService {
       is_stub: isStub,
       brand_voice_id: row.brandVoiceId,
     };
+  }
+
+  private encodeCursor(createdAt: Date, id: string): string {
+    return Buffer.from(`${createdAt.toISOString()}|${id}`).toString('base64url');
+  }
+
+  private decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
+    try {
+      const raw = Buffer.from(cursor, 'base64url').toString('utf8');
+      const sepIdx = raw.indexOf('|');
+      if (sepIdx < 0) return null;
+      const createdAt = new Date(raw.slice(0, sepIdx));
+      const id = raw.slice(sepIdx + 1);
+      if (Number.isNaN(createdAt.getTime()) || !id) return null;
+      return { createdAt, id };
+    } catch {
+      return null;
+    }
+  }
+
+  private countWords(text: string): number {
+    const t = text
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[#*_`>-]+/g, ' ')
+      .trim();
+    return t ? t.split(/\s+/).length : 0;
   }
 
   private toSlug(value: string): string {

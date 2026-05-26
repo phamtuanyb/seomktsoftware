@@ -45,11 +45,14 @@ export default function PublisherPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, a, j] = await Promise.all([
+      const [s, articlesRes, j] = await Promise.all([
         publisherApi.listSites(),
-        contentApi.listArticles().catch(() => [] as ArticleResult[]),
+        contentApi
+          .listArticles({ limit: 100 })
+          .catch(() => ({ items: [] as ArticleResult[], cursor: null, has_more: false })),
         publisherApi.listJobs(),
       ]);
+      const a = articlesRes.items;
       setSites(s);
       setArticles(a);
       const titleById = new Map(a.map((x) => [x.id, x.title]));

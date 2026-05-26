@@ -116,8 +116,36 @@ export const contentApi = {
   generateArticle: (body: GenerateArticleRequest) =>
     api.post<ArticleResult>('/content/article', body),
 
-  listArticles: () => api.get<ArticleResult[]>('/content/articles'),
+  listArticles: (query?: {
+    cursor?: string;
+    limit?: number;
+    status?: 'draft' | 'ready' | 'published';
+    q?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (query?.cursor) qs.set('cursor', query.cursor);
+    if (query?.limit) qs.set('limit', String(query.limit));
+    if (query?.status) qs.set('status', query.status);
+    if (query?.q) qs.set('q', query.q);
+    const suffix = qs.toString();
+    return api.get<{ items: ArticleResult[]; cursor: string | null; has_more: boolean }>(
+      `/content/articles${suffix ? `?${suffix}` : ''}`,
+    );
+  },
   getArticle: (id: string) => api.get<ArticleResult>(`/content/articles/${id}`),
+  updateArticle: (
+    id: string,
+    body: Partial<{
+      title: string;
+      slug: string;
+      content_markdown: string;
+      meta_title: string;
+      meta_description: string;
+      status: 'draft' | 'ready' | 'published';
+      word_count: number;
+    }>,
+  ) => api.patch<ArticleResult>(`/content/articles/${id}`, body),
+  deleteArticle: (id: string) => api.delete<{ id: string }>(`/content/articles/${id}`),
 
   /**
    * Streaming article generation. Hits the same endpoint with
