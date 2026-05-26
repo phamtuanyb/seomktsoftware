@@ -2,10 +2,10 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
-  NotImplementedException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -19,8 +19,15 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { QuotaService } from '../../common/services/quota.service';
-import { AddKeywordsDto, CreateProjectDto, SuggestKeywordsDto, UpdateProjectDto } from './dto';
+import {
+  AddKeywordsDto,
+  AnalyzeKeywordsDto,
+  CreateProjectDto,
+  SuggestKeywordsDto,
+  UpdateProjectDto,
+} from './dto';
 import { SuggestionService } from './services/suggestion.service';
+import { AnalysisService } from './services/analysis.service';
 import { KeywordProjectsService } from './services/projects.service';
 import { KeywordExportService, type ExportFormat } from './services/export.service';
 
@@ -35,6 +42,7 @@ import { KeywordExportService, type ExportFormat } from './services/export.servi
 export class KeywordsController {
   constructor(
     private readonly suggestions: SuggestionService,
+    private readonly analyses: AnalysisService,
     private readonly projects: KeywordProjectsService,
     private readonly exporter: KeywordExportService,
     private readonly quotas: QuotaService,
@@ -52,7 +60,7 @@ export class KeywordsController {
     const quotaCheck = await this.quotas.checkQuota(userId, 'keywords', limit);
     if (!quotaCheck.allowed) {
       // Section 11 — surface a quota error.
-      throw new (await import('@nestjs/common')).ForbiddenException({
+      throw new ForbiddenException({
         code: 'QUOTA_EXCEEDED',
         message: `Bạn còn ${quotaCheck.remaining} keyword quota — yêu cầu ${limit}.`,
         details: quotaCheck,
@@ -66,12 +74,15 @@ export class KeywordsController {
     return result;
   }
 
-  // ---- TN2 placeholder ----
+  // ---- TN2 ----
 
   @Post('analyze')
-  @ApiOperation({ summary: 'TN2 — Volume + KD + Intent batch analysis (Sprint 6.4)' })
-  analyze(): never {
-    throw new NotImplementedException('Pending Sprint 6.4 — TN2');
+  @ApiOperation({
+    summary:
+      'TN2 — Batch analyze: Volume + CPC + Competition (DataForSEO) + KD heuristic + Intent (Claude Haiku + rule). 7-day Redis cache per keyword.',
+  })
+  async analyze(@Body() dto: AnalyzeKeywordsDto, @CurrentUser('id') userId: string) {
+    return this.analyses.analyze(dto, userId);
   }
 
   // ---- Projects CRUD ----
