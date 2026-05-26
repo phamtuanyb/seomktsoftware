@@ -11,6 +11,7 @@ import {
 } from './services/redis.service';
 import { EventBusService } from './services/event-bus.service';
 import { QuotaService } from './services/quota.service';
+import { CryptoService } from './services/crypto.service';
 
 /**
  * Global infra services shared by every feature module:
@@ -39,6 +40,7 @@ import { QuotaService } from './services/quota.service';
     RedisService,
     EventBusService,
     QuotaService,
+    CryptoService,
   ],
   exports: [
     PrismaService,
@@ -48,6 +50,7 @@ import { QuotaService } from './services/quota.service';
     REDIS_SUBSCRIBER,
     EventBusService,
     QuotaService,
+    CryptoService,
   ],
 })
 export class CommonModule {}
