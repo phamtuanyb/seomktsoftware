@@ -87,6 +87,20 @@ export function stubOutlineFor(keyword: string): string {
   return STUB_OUTLINE_JSON.replace(/\{\{KEYWORD\}\}/g, keyword);
 }
 
+/**
+ * Sprint 6.5 — passthrough-ish stub for the editor's regenerate-section +
+ * rewrite endpoints. We can't return the full article fixture (the caller
+ * wants just a body) and we can't return JSON (markdown is expected), so
+ * we echo a deterministic marker so tests can assert "LLM was called +
+ * content replaced".
+ */
+export function stubRewriteFor(args: { source: string; action: string; keyword: string }): string {
+  const trimmed = args.source.trim().split(/\s+/).slice(0, 80).join(' ');
+  return `[STUB-${args.action.toUpperCase()}] ${args.keyword}: ${trimmed}${
+    trimmed.endsWith('.') ? '' : '.'
+  } LSI keywords: ${args.keyword}, content marketing, SEO.`;
+}
+
 /** Generates a stub article string for streaming. ~2000 words of placeholder content. */
 export function stubArticleFor(keyword: string): string {
   const intro = `[STUB] **${keyword}** đang là một trong những chủ đề được quan tâm nhất hiện nay. Bài viết này sẽ giúp bạn hiểu toàn diện về **${keyword}** — từ khái niệm cơ bản, lợi ích cụ thể, đến hướng dẫn áp dụng và những sai lầm cần tránh. Đặc biệt, chúng tôi tổng hợp các câu hỏi thường gặp giúp bạn tiết kiệm thời gian tìm kiếm. Nếu bạn đang muốn bắt đầu với ${keyword} một cách hiệu quả, đây chính là cẩm nang đầy đủ nhất.`;

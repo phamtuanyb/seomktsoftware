@@ -9,7 +9,7 @@ import {
   type LlmProvider,
   type LlmStreamEvent,
 } from './llm-provider.interface';
-import { stubArticleFor, stubOutlineFor } from './stub-fixtures';
+import { stubArticleFor, stubOutlineFor, stubRewriteFor } from './stub-fixtures';
 
 /**
  * Anthropic Claude provider — TN3 outline + TN4 article (streaming).
@@ -128,14 +128,34 @@ export class ClaudeProvider implements LlmProvider {
 
   private stubGenerate(opts: LlmGenerateOptions, apiModel: string): LlmGenerateResult {
     // The article prompt explicitly asks for markdown / "Bắt đầu viết:"; the
-    // outline prompt explicitly asks to "Trả về JSON thuần". Use those marker
-    // phrases (not the word "outline" — TN4 prompt embeds the input outline)
-    // so stub mode picks the right fixture.
+    // outline prompt explicitly asks to "Trả về JSON thuần". The rewrite/regenerate
+    // prompts include a "===== NỘI DUNG GỐC =====" section. Use marker phrases
+    // (not the word "outline" — TN4 prompt embeds the input outline) so stub
+    // mode picks the right fixture.
+    const wantsRewrite = /NỘI DUNG GỐC|Body cũ \(để tham khảo/i.test(opts.prompt);
     const wantsArticle = /Markdown output only|Bắt đầu viết|Viết một bài viết SEO/i.test(
       opts.prompt,
     );
     const keyword = this.guessKeyword(opts.prompt);
-    const content = wantsArticle ? stubArticleFor(keyword) : stubOutlineFor(keyword);
+    let content: string;
+    if (wantsRewrite) {
+      const action = /shorter/i.test(opts.prompt)
+        ? 'shorter'
+        : /longer/i.test(opts.prompt)
+          ? 'longer'
+          : /tone "/i.test(opts.prompt)
+            ? 'tone'
+            : /thêm chi tiết/i.test(opts.prompt)
+              ? 'details'
+              : /Body cũ/i.test(opts.prompt)
+                ? 'regenerate'
+                : 'rewrite';
+      content = stubRewriteFor({ source: opts.prompt, action, keyword });
+    } else if (wantsArticle) {
+      content = stubArticleFor(keyword);
+    } else {
+      content = stubOutlineFor(keyword);
+    }
     const inputTokens = Math.ceil((opts.prompt.length + (opts.system?.length ?? 0)) / 4);
     const outputTokens = Math.ceil(content.length / 4);
     return {

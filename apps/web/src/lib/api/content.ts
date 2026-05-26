@@ -30,6 +30,8 @@ export interface OutlineWithMetadata {
   };
 }
 
+export type ArticleTone = 'expert' | 'friendly' | 'sales' | 'educational' | 'storytelling';
+
 export type OutlineIntent = 'info' | 'commercial' | 'transactional' | 'navigational';
 export type OutlineFormat =
   | 'blog'
@@ -146,6 +148,32 @@ export const contentApi = {
     }>,
   ) => api.patch<ArticleResult>(`/content/articles/${id}`, body),
   deleteArticle: (id: string) => api.delete<{ id: string }>(`/content/articles/${id}`),
+
+  /** Sprint 6.5 — regenerate ONE H2 section in place, returns the full updated article. */
+  regenerateSection: (
+    id: string,
+    body: { section_heading: string; instructions?: string; tone?: ArticleTone },
+  ) => api.post<ArticleResult>(`/content/articles/${id}/regenerate-section`, body),
+
+  /** Sprint 6.5 — rewrite selection or whole article. */
+  rewrite: (
+    id: string,
+    body: {
+      action: 'shorter' | 'longer' | 'tone' | 'details' | 'free';
+      text?: string;
+      tone?: ArticleTone;
+      instructions?: string;
+      apply?: number;
+    },
+  ) =>
+    api.post<{ rewritten: string; article?: ArticleResult }>(
+      `/content/articles/${id}/rewrite`,
+      body,
+    ),
+
+  /** Sprint 6.5 — download article as md / html / docx. Triggers a browser download. */
+  exportUrl: (id: string, format: 'md' | 'html' | 'docx') =>
+    `/api/proxy/v1/content/articles/${id}/export?format=${format}`,
 
   /**
    * Streaming article generation. Hits the same endpoint with

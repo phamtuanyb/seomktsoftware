@@ -25,8 +25,10 @@ import { QuotaService } from '../../common/services/quota.service';
 import { GenerateOutlineDto } from './dto/generate-outline.dto';
 import { GenerateArticleDto } from './dto/generate-article.dto';
 import { ListArticlesQueryDto, UpdateArticleDto } from './dto/update-article.dto';
+import { RegenerateSectionDto, RewriteDto } from './dto/rewrite-article.dto';
 import { OutlineService } from './services/outline.service';
 import { ArticleService } from './services/article.service';
+import { ArticleEditorService } from './services/article-editor.service';
 import type { OutlineWithMetadata } from './schemas/outline.schema';
 
 /** Section 8 — TN3 outline (live) + TN4 article writer (live with SSE). */
@@ -37,6 +39,7 @@ export class ContentController {
   constructor(
     private readonly outlines: OutlineService,
     private readonly articles: ArticleService,
+    private readonly editor: ArticleEditorService,
     private readonly quotas: QuotaService,
   ) {}
 
@@ -155,5 +158,58 @@ export class ContentController {
   @ApiOperation({ summary: 'Soft-delete article (status → deleted, deleted_at set).' })
   deleteArticle(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.articles.remove(userId, id);
+  }
+
+  // ----- Sprint 6.5 editor enhancements -----
+
+  @Post('articles/:id/regenerate-section')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'TN4 — regenerate one ## H2 section in place. Keeps the heading, replaces the body via Claude.',
+  })
+  regenerateSection(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RegenerateSectionDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.editor.regenerateSection(userId, id, dto);
+  }
+
+  @Post('articles/:id/rewrite')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'TN4 — rewrite selection or whole article. Actions: shorter, longer, tone, details, free.',
+  })
+  rewrite(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RewriteDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.editor.rewrite(userId, id, dto);
+  }
+
+  @Get('articles/:id/export')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Download article as md / html / docx (Word-compatible).' })
+  async exportArticle(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+    @Query('format') formatRaw: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
+    const format = (formatRaw ?? 'md').toLowerCase();
+    if (format !== 'md' && format !== 'html' && format !== 'docx') {
+      res.status(HttpStatus.BAD_REQUEST).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'format phải là md / html / docx' },
+      });
+      return;
+    }
+    const out = await this.editor.export(userId, id, format);
+    res.setHeader('Content-Type', out.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`);
+    res.send(out.body);
   }
 }
