@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ContentModule } from '../content/content.module';
 import { AuditController } from './audit.controller';
 import { AuditService } from './services/audit.service';
+import { AutoFixService } from './services/auto-fix.service';
 import { SCORING_RULES } from './rules/base.rule';
 import { KeywordDensityRule } from './rules/keyword-density.rule';
 import { TitleKeywordRule } from './rules/title-keyword.rule';
@@ -15,8 +17,10 @@ import { LsiKeywordsRule } from './rules/lsi-keywords.rule';
 import { IntroHookRule } from './rules/intro-hook.rule';
 import { FaqSectionRule } from './rules/faq-section.rule';
 
-/** Section 8 TN7 — wires all 12 ScoringRules into the SCORING_RULES array. */
+/** Section 8 TN7 — wires all 12 ScoringRules + AutoFix into the module. */
 @Module({
+  // ContentModule exports LlmRegistry which AutoFixService depends on.
+  imports: [ContentModule],
   controllers: [AuditController],
   providers: [
     KeywordDensityRule,
@@ -63,7 +67,8 @@ import { FaqSectionRule } from './rules/faq-section.rule';
       ],
     },
     AuditService,
+    AutoFixService,
   ],
-  exports: [AuditService],
+  exports: [AuditService, AutoFixService],
 })
 export class AuditModule {}

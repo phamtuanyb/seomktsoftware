@@ -1,8 +1,9 @@
-import { Body, Controller, NotImplementedException, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuditService } from './services/audit.service';
+import { AutoFixService } from './services/auto-fix.service';
 import { AutoFixDto, ScoreContentDto } from './dto/score.dto';
 
 /** Section 8 — TN7 Content Score (12 rules via Chain of Responsibility). */
@@ -11,7 +12,10 @@ import { AutoFixDto, ScoreContentDto } from './dto/score.dto';
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'audit', version: '1' })
 export class AuditController {
-  constructor(private readonly audits: AuditService) {}
+  constructor(
+    private readonly audits: AuditService,
+    private readonly fixer: AutoFixService,
+  ) {}
 
   @Post('score')
   @ApiOperation({
@@ -23,8 +27,11 @@ export class AuditController {
   }
 
   @Post('auto-fix')
-  @ApiOperation({ summary: 'TN7 — Auto-fix rules scoring < 80 via Claude (Sprint 7.3)' })
-  autoFix(@Body() _dto: AutoFixDto): never {
-    throw new NotImplementedException('Pending Sprint 7.3 — auto-fix');
+  @ApiOperation({
+    summary:
+      'TN7 — Auto-fix rules scoring <80 via Claude. Rewrites article markdown targeted at the failing rules; only persists when post-rewrite score improves.',
+  })
+  autoFix(@Body() dto: AutoFixDto, @CurrentUser('id') userId: string) {
+    return this.fixer.fix(dto, userId);
   }
 }
