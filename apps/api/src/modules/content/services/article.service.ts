@@ -3,6 +3,8 @@ import { ErrorCode } from '@mkt-seo/shared';
 import { uuidv7 } from 'uuidv7';
 import { PrismaService } from '../../../common/services/prisma.service';
 import { EventBusService } from '../../../common/services/event-bus.service';
+import { AuditService } from '../../audit/services/audit.service';
+import type { RuleResult } from '../../audit/rules/base.rule';
 import { LlmRegistry } from '../providers/llm-registry.service';
 import { type LlmModel, type LlmStreamEvent } from '../providers/llm-provider.interface';
 import {
@@ -11,8 +13,10 @@ import {
   type BrandVoiceProfileLite,
   type ReferenceArticleLite,
 } from '../prompts/article.prompt';
-import { ArticlePostProcessService, type PostProcessOutput } from './article-post-process.service';
+import { ArticlePostProcessService } from './article-post-process.service';
 import { type GenerateArticleDto } from '../dto/generate-article.dto';
+
+type ScoreBreakdown = Record<string, RuleResult>;
 
 export type ArticleStreamEvent =
   | { type: 'token'; content: string }
@@ -21,7 +25,7 @@ export type ArticleStreamEvent =
       type: 'complete';
       article_id: string;
       content_score: number;
-      content_score_breakdown: PostProcessOutput['content_score_breakdown'];
+      content_score_breakdown: ScoreBreakdown;
       word_count: number;
       meta_title: string;
       meta_description: string;
@@ -42,7 +46,7 @@ export interface ArticleResult {
   target_keyword: string;
   word_count: number;
   content_score: number;
-  content_score_breakdown: PostProcessOutput['content_score_breakdown'];
+  content_score_breakdown: ScoreBreakdown;
   ai_model: string;
   ai_cost_usd: number;
   is_stub: boolean;
@@ -71,6 +75,7 @@ export class ArticleService {
     private readonly prisma: PrismaService,
     private readonly llm: LlmRegistry,
     private readonly postProcess: ArticlePostProcessService,
+    private readonly audit: AuditService,
     private readonly eventBus: EventBusService,
   ) {}
 
@@ -196,11 +201,23 @@ export class ArticleService {
       return;
     }
 
-    // Run the deterministic post-process pipeline.
+    // Deterministic post-process — markdown→HTML, bold keyword, schema, meta.
     const processed = this.postProcess.process({
       markdown: buffer,
       keyword,
       enableSchemaMarkup,
+    });
+
+    // Run the full 12-rule TN7 audit (Section 8 TN4 step 5: "Call audit service to score").
+    const auditReport = await this.audit.scoreInline({
+      title: dto.outline.h1,
+      content: processed.html,
+      content_markdown: processed.markdownProcessed,
+      meta_title: processed.meta_title,
+      meta_description: processed.meta_description,
+      target_keyword: keyword,
+      secondary_keywords: processed.lsi_keywords,
+      intent: dto.tone ? undefined : 'info',
     });
 
     // Persist.
@@ -220,8 +237,8 @@ export class ArticleService {
         outlineJson: dto.outline as unknown as object,
         format,
         wordCount: processed.word_count,
-        contentScore: processed.content_score,
-        scoreBreakdownJson: processed.content_score_breakdown as unknown as object,
+        contentScore: auditReport.score,
+        scoreBreakdownJson: auditReport.breakdown as unknown as object,
         status: 'draft',
         brandVoiceId: brandVoice ? dto.brand_voice_id : null,
         aiModelUsed: provider.name + ':' + (dto.model ?? 'default'),
@@ -233,6 +250,7 @@ export class ArticleService {
           keyword_density: processed.keyword_density,
           enable_schema_markup: enableSchemaMarkup,
           is_stub: !provider.available,
+          audit_prioritized: auditReport.prioritized,
         },
       },
     });
@@ -241,15 +259,15 @@ export class ArticleService {
       article_id: articleId,
       user_id: userId,
       keyword,
-      content_score: processed.content_score,
+      content_score: auditReport.score,
       word_count: processed.word_count,
     });
 
     yield {
       type: 'complete',
       article_id: articleId,
-      content_score: processed.content_score,
-      content_score_breakdown: processed.content_score_breakdown,
+      content_score: auditReport.score,
+      content_score_breakdown: auditReport.breakdown,
       word_count: processed.word_count,
       meta_title: processed.meta_title,
       meta_description: processed.meta_description,
@@ -315,8 +333,7 @@ export class ArticleService {
       target_keyword: row.targetKeyword ?? '',
       word_count: row.wordCount ?? 0,
       content_score: row.contentScore ?? 0,
-      content_score_breakdown:
-        (row.scoreBreakdownJson as PostProcessOutput['content_score_breakdown']) ?? {},
+      content_score_breakdown: (row.scoreBreakdownJson as ScoreBreakdown) ?? {},
       ai_model: row.aiModelUsed ?? 'unknown',
       ai_cost_usd:
         typeof row.aiCostUsd === 'number' ? row.aiCostUsd : (row.aiCostUsd?.toNumber?.() ?? 0),

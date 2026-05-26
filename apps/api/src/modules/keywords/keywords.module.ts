@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ContentModule } from '../content/content.module';
+import { LlmModule } from '../llm/llm.module';
 import { KeywordsController } from './keywords.controller';
 import { KeywordProxyService } from './providers/proxy.service';
 import { GoogleSuggestProvider } from './providers/google-suggest.provider';
@@ -14,8 +14,8 @@ import { IntentClassifierService } from './services/intent-classifier.service';
 import { AnalysisService } from './services/analysis.service';
 
 @Module({
-  // ContentModule exports LlmRegistry which IntentClassifierService depends on.
-  imports: [ContentModule],
+  // LlmModule exports LlmRegistry which IntentClassifierService depends on.
+  imports: [LlmModule],
   controllers: [KeywordsController],
   providers: [
     KeywordProxyService,

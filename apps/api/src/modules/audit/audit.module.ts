@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ContentModule } from '../content/content.module';
+import { LlmModule } from '../llm/llm.module';
 import { AuditController } from './audit.controller';
 import { AuditService } from './services/audit.service';
 import { AutoFixService } from './services/auto-fix.service';
@@ -19,8 +19,8 @@ import { FaqSectionRule } from './rules/faq-section.rule';
 
 /** Section 8 TN7 — wires all 12 ScoringRules + AutoFix into the module. */
 @Module({
-  // ContentModule exports LlmRegistry which AutoFixService depends on.
-  imports: [ContentModule],
+  // LlmModule provides LlmRegistry — needed by AutoFixService for the rewrite.
+  imports: [LlmModule],
   controllers: [AuditController],
   providers: [
     KeywordDensityRule,

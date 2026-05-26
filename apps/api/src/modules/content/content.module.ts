@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
+import { LlmModule } from '../llm/llm.module';
+import { AuditModule } from '../audit/audit.module';
 import { ContentController } from './content.controller';
-import { ClaudeProvider } from './providers/claude.provider';
-import { OpenAiProvider } from './providers/openai.provider';
-import { LlmRegistry } from './providers/llm-registry.service';
-import { LLM_PROVIDER_CLAUDE, LLM_PROVIDER_OPENAI } from './providers/llm-provider.interface';
 import { SerpService } from './services/serp.service';
 import { OutlineService } from './services/outline.service';
 import { ArticleService } from './services/article.service';
@@ -11,18 +9,11 @@ import { ArticlePostProcessService } from './services/article-post-process.servi
 
 /** Section 8 — TN3 outline + TN4 article (streaming). */
 @Module({
+  // LlmModule owns the Claude/OpenAI providers + registry.
+  // AuditModule provides the 12-rule AuditService that TN4 calls after post-process.
+  imports: [LlmModule, AuditModule],
   controllers: [ContentController],
-  providers: [
-    SerpService,
-    OutlineService,
-    ArticleService,
-    ArticlePostProcessService,
-    ClaudeProvider,
-    OpenAiProvider,
-    { provide: LLM_PROVIDER_CLAUDE, useExisting: ClaudeProvider },
-    { provide: LLM_PROVIDER_OPENAI, useExisting: OpenAiProvider },
-    LlmRegistry,
-  ],
-  exports: [OutlineService, ArticleService, ArticlePostProcessService, LlmRegistry],
+  providers: [SerpService, OutlineService, ArticleService, ArticlePostProcessService],
+  exports: [OutlineService, ArticleService, ArticlePostProcessService],
 })
 export class ContentModule {}
