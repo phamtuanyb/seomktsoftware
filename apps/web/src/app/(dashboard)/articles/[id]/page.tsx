@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { contentApi, type ArticleResult, type ArticleTone } from '@/lib/api/content';
+import { auditApi } from '@/lib/api/audit';
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 type RewriteAction = 'shorter' | 'longer' | 'tone' | 'details' | 'free';
@@ -28,9 +29,17 @@ interface OutlineSection {
   level: 2 | 3;
 }
 
+interface HistorySnapshot {
+  label: string;
+  markdown: string;
+  at: number;
+}
+
 const TONES: ArticleTone[] = ['expert', 'friendly', 'sales', 'educational', 'storytelling'];
 
 const AUTO_SAVE_INTERVAL_MS = 30_000;
+const LIVE_SCORE_DEBOUNCE_MS = 5_000;
+const HISTORY_MAX = 10;
 
 /**
  * Sprint 6.5 — TN4 3-column editor.
@@ -61,8 +70,16 @@ export default function ArticleDetailPage() {
   const [tone, setTone] = useState<ArticleTone>('friendly');
   const [freeInstructions, setFreeInstructions] = useState('');
 
+  // Sprint 6.6 — realtime score preview
+  const [liveScore, setLiveScore] = useState<number | null>(null);
+  const [liveScoring, setLiveScoring] = useState(false);
+
+  // Sprint 6.6 — undo stack for AI-driven changes (regenerate, rewrite, apply).
+  const [history, setHistory] = useState<HistorySnapshot[]>([]);
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveScoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedSnapshot = useRef<string>('');
 
   // ----- load -----
@@ -159,6 +176,78 @@ export default function ArticleDetailPage() {
     };
   }, [isDirty, article, save]);
 
+  // Sprint 6.6 — realtime content score every 5s after edits (debounced).
+  // Cheap on the server: 12 rules run in parallel against in-memory HTML.
+  useEffect(() => {
+    if (liveScoreTimer.current) clearTimeout(liveScoreTimer.current);
+    if (!article) return;
+    const keyword = article.target_keyword;
+    if (!keyword || markdown.trim().length < 50) return;
+    liveScoreTimer.current = setTimeout(async () => {
+      setLiveScoring(true);
+      try {
+        const report = await auditApi.score({
+          title,
+          content_markdown: markdown,
+          meta_title: metaTitle,
+          meta_description: metaDescription,
+          target_keyword: keyword,
+        });
+        setLiveScore(report.score);
+      } catch {
+        // Score is purely informational — swallow errors so they don't
+        // break the editor.
+      } finally {
+        setLiveScoring(false);
+      }
+    }, LIVE_SCORE_DEBOUNCE_MS);
+    return () => {
+      if (liveScoreTimer.current) clearTimeout(liveScoreTimer.current);
+    };
+  }, [article, title, markdown, metaTitle, metaDescription]);
+
+  // Sprint 6.6 — Cmd/Ctrl+Z restores the most recent AI snapshot.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+      if (!isUndo) return;
+      // Only steal undo when the focus is in our editor, and the textarea
+      // itself isn't going to handle the undo (i.e. no last-typed change).
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active === textareaRef.current) {
+        // Let the textarea handle typing-level undo by default; only intercept
+        // when the user explicitly shift-pressed for AI undo (handled below).
+        return;
+      }
+      if (history.length === 0) return;
+      e.preventDefault();
+      restoreLatestHistory();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history]);
+
+  function pushHistory(label: string): void {
+    setHistory((prev) => [{ label, markdown, at: Date.now() }, ...prev.slice(0, HISTORY_MAX - 1)]);
+  }
+
+  function restoreLatestHistory(): void {
+    const top = history[0];
+    if (!top) return;
+    setMarkdown(top.markdown);
+    setHistory((prev) => prev.slice(1));
+    setAiNotice(`Đã undo: "${top.label}".`);
+  }
+
+  function restoreHistoryAt(idx: number): void {
+    const snap = history[idx];
+    if (!snap) return;
+    setMarkdown(snap.markdown);
+    setHistory((prev) => prev.slice(idx + 1));
+    setAiNotice(`Đã khôi phục: "${snap.label}".`);
+  }
+
   // ----- AI actions -----
 
   /** Find the H2 heading the caret is currently inside. */
@@ -218,6 +307,7 @@ export default function ArticleDetailPage() {
     }
     setAiBusy('regenerate');
     setAiNotice(null);
+    pushHistory(`regenerate "${heading}"`);
     try {
       const updated = await contentApi.regenerateSection(article.id, { section_heading: heading });
       setArticle(updated);
@@ -248,6 +338,7 @@ export default function ArticleDetailPage() {
     }
     setAiBusy(action);
     setAiNotice(null);
+    if (selected) pushHistory(`rewrite "${action}"`);
     try {
       const res = await contentApi.rewrite(article.id, {
         action,
@@ -308,7 +399,8 @@ export default function ArticleDetailPage() {
           </Button>
           <h1 className="mt-1 text-xl font-bold tracking-tight">Sửa bài viết</h1>
           <p className="text-xs text-muted-foreground">
-            Score {article.content_score}/100 · {article.word_count} từ · {article.ai_model}
+            <ScoreBadge saved={article.content_score} live={liveScore} scoring={liveScoring} /> ·{' '}
+            {article.word_count} từ · {article.ai_model}
             {article.is_stub && <span className="ml-2 text-amber-700">(stub)</span>}
           </p>
         </div>
@@ -565,6 +657,37 @@ export default function ArticleDetailPage() {
               </div>
             </div>
 
+            {/* Sprint 6.6 — AI history / undo */}
+            <div className="space-y-1 border-t pt-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Lịch sử AI</p>
+                <span className="text-[10px] text-muted-foreground">Cmd/Ctrl+Z để undo</span>
+              </div>
+              {history.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  Mỗi lần regenerate/rewrite sẽ lưu 1 bản. Tối đa {HISTORY_MAX}.
+                </p>
+              ) : (
+                <ul className="space-y-1 text-[11px]">
+                  {history.map((h, i) => (
+                    <li key={`${h.at}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => restoreHistoryAt(i)}
+                        className="flex w-full items-center justify-between rounded px-1.5 py-1 text-left hover:bg-muted"
+                        title="Khôi phục về thời điểm này"
+                      >
+                        <span className="truncate font-medium">{h.label}</span>
+                        <span className="ml-2 shrink-0 text-muted-foreground">
+                          {new Date(h.at).toLocaleTimeString()}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {aiNotice && (
               <p className="rounded bg-muted/50 p-2 text-[11px] text-muted-foreground">
                 {aiNotice}
@@ -601,4 +724,35 @@ function SaveIndicator({ state, lastSavedAt }: { state: SaveState; lastSavedAt: 
   return lastSavedAt ? (
     <span className="text-xs text-muted-foreground">Đã lưu {lastSavedAt.toLocaleTimeString()}</span>
   ) : null;
+}
+
+function ScoreBadge({
+  saved,
+  live,
+  scoring,
+}: {
+  saved: number;
+  live: number | null;
+  scoring: boolean;
+}) {
+  const color = (n: number) =>
+    n >= 80 ? 'text-emerald-700' : n >= 60 ? 'text-amber-700' : 'text-rose-700';
+  if (live !== null && live !== saved) {
+    return (
+      <span>
+        Score <strong className={color(saved)}>{saved}</strong>
+        <span className="mx-1 text-muted-foreground">→</span>
+        <strong className={color(live)} title="Bản xem trước realtime (chưa lưu)">
+          {live}
+        </strong>
+        {scoring && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}/100
+      </span>
+    );
+  }
+  return (
+    <span>
+      Score <strong className={color(saved)}>{saved}</strong>
+      {scoring && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}/100
+    </span>
+  );
 }

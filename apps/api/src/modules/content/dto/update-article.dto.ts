@@ -68,4 +68,18 @@ export class ListArticlesQueryDto {
   @IsString()
   @MaxLength(100)
   q?: string;
+
+  @ApiProperty({ required: false, minimum: 0, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  min_score?: number;
+
+  @ApiProperty({ required: false, minimum: 0, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  max_score?: number;
 }

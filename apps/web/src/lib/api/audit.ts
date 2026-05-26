@@ -32,6 +32,8 @@ export interface ScoreRequest {
   article_id?: string;
   title?: string;
   content?: string;
+  /** Sprint 6.6 — server converts to HTML before scoring. Use for live editor preview. */
+  content_markdown?: string;
   meta_title?: string;
   meta_description?: string;
   target_keyword: string;

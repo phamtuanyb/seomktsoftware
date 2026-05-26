@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   brandVoicesApi,
+  type BrandVoiceDetail,
   type BrandVoiceListItem,
   type CreateBrandVoiceRequest,
 } from '@/lib/api/content';
@@ -37,8 +38,22 @@ export default function BrandVoicesPage() {
   const [samples, setSamples] = useState<SampleArticleInput[]>(emptySamples());
   const [submitting, setSubmitting] = useState(false);
   const [retrainingId, setRetrainingId] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<BrandVoiceDetail | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  async function handlePreview(id: string) {
+    setPreviewLoading(true);
+    try {
+      const detail = await brandVoicesApi.get(id);
+      setPreviewing(detail);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   function refresh() {
     setLoading(true);
@@ -174,6 +189,16 @@ export default function BrandVoicesPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handlePreview(bv.id)}
+                      disabled={previewLoading}
+                      aria-label="Xem chi tiết"
+                      title="Xem profile + bài mẫu"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleRetrain(bv.id)}
                       disabled={retrainingId === bv.id}
                       aria-label="Re-train"
@@ -299,6 +324,173 @@ export default function BrandVoicesPage() {
           </form>
         </CardContent>
       </Card>
+
+      {previewing && <PreviewModal voice={previewing} onClose={() => setPreviewing(null)} />}
+    </div>
+  );
+}
+
+function PreviewModal({ voice, onClose }: { voice: BrandVoiceDetail; onClose: () => void }) {
+  const profile = voice.profile_json as {
+    tone?: { primary?: string; secondary?: string[]; confidence?: number };
+    sentence_structure?: {
+      avg_words_per_sentence?: number;
+      short_sentences_pct?: number;
+      long_sentences_pct?: number;
+    };
+    addressing?: { primary?: string; formality?: string };
+    signature_phrases?: string[];
+    vocabulary?: { complexity?: string; domain_terms?: string[] };
+    emoji_usage?: { enabled?: boolean; density?: string; common_emojis?: string[] };
+    patterns?: { opening_style?: string; closing_style?: string; cta_style?: string };
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-background shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 flex items-center justify-between border-b bg-background p-4">
+          <div>
+            <h2 className="text-lg font-bold">{voice.name}</h2>
+            <p className="text-xs text-muted-foreground">
+              {voice.algorithm === 'claude-sonnet-4' ? 'Claude Sonnet 4' : 'heuristic stub'} ·{' '}
+              {voice.sample_count} bài mẫu · {new Date(voice.trained_at).toLocaleString()}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Đóng">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-4 p-4 text-sm">
+          {voice.description && <p className="text-muted-foreground">{voice.description}</p>}
+
+          <Section title="Tone">
+            <p>
+              <strong>{profile.tone?.primary ?? '(chưa rõ)'}</strong>
+              {profile.tone?.confidence !== undefined && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  confidence {(profile.tone.confidence * 100).toFixed(0)}%
+                </span>
+              )}
+            </p>
+            {profile.tone?.secondary && profile.tone.secondary.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Phụ: {profile.tone.secondary.join(', ')}
+              </p>
+            )}
+          </Section>
+
+          <Section title="Cấu trúc câu">
+            <ul className="space-y-1 text-xs">
+              <li>
+                Trung bình: <strong>{profile.sentence_structure?.avg_words_per_sentence}</strong>{' '}
+                từ/câu
+              </li>
+              <li>Câu ngắn (≤10 từ): {profile.sentence_structure?.short_sentences_pct}%</li>
+              <li>Câu dài (≥25 từ): {profile.sentence_structure?.long_sentences_pct}%</li>
+            </ul>
+          </Section>
+
+          <Section title="Xưng hô">
+            <p>
+              <strong>{profile.addressing?.primary}</strong>{' '}
+              {profile.addressing?.formality && (
+                <span className="text-xs text-muted-foreground">
+                  ({profile.addressing.formality})
+                </span>
+              )}
+            </p>
+          </Section>
+
+          {profile.signature_phrases && profile.signature_phrases.length > 0 && (
+            <Section title="Cụm từ đặc trưng">
+              <div className="flex flex-wrap gap-1">
+                {profile.signature_phrases.map((p, i) => (
+                  <code key={i} className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    {p}
+                  </code>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <Section title="Vocabulary">
+            <p>
+              Độ phức tạp: <strong>{profile.vocabulary?.complexity}</strong>
+            </p>
+            {profile.vocabulary?.domain_terms && profile.vocabulary.domain_terms.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {profile.vocabulary.domain_terms.map((t, i) => (
+                  <span key={i} className="rounded bg-muted/60 px-1.5 py-0.5 text-xs">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section title="Emoji">
+            <p>
+              {profile.emoji_usage?.enabled ? (
+                <>
+                  Có dùng — mật độ <strong>{profile.emoji_usage.density}</strong>{' '}
+                  {profile.emoji_usage.common_emojis &&
+                    profile.emoji_usage.common_emojis.length > 0 && (
+                      <span className="ml-1">{profile.emoji_usage.common_emojis.join(' ')}</span>
+                    )}
+                </>
+              ) : (
+                <span className="text-muted-foreground">Không dùng emoji</span>
+              )}
+            </p>
+          </Section>
+
+          <Section title="Patterns">
+            <ul className="space-y-1 text-xs">
+              <li>
+                <strong>Mở bài:</strong> {profile.patterns?.opening_style}
+              </li>
+              <li>
+                <strong>Kết bài:</strong> {profile.patterns?.closing_style}
+              </li>
+              <li>
+                <strong>CTA:</strong> {profile.patterns?.cta_style}
+              </li>
+            </ul>
+          </Section>
+
+          <Section title={`Bài mẫu reference (${voice.reference_articles.length})`}>
+            <ul className="space-y-2">
+              {voice.reference_articles.map((a, i) => (
+                <li key={i} className="rounded border p-2">
+                  {a.title && <p className="font-medium">{a.title}</p>}
+                  <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
+                    {a.content.slice(0, 300)}
+                    {a.content.length > 300 && '...'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h3>
+      {children}
     </div>
   );
 }

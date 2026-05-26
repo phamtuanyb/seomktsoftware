@@ -32,6 +32,15 @@ export class ScoreContentDto {
   @IsString()
   content?: string;
 
+  @ApiProperty({
+    required: false,
+    description:
+      'Markdown body. Sprint 6.6 — live editor preview score. Server converts to HTML before running rules. Use this OR content, not both.',
+  })
+  @IsOptional()
+  @IsString()
+  content_markdown?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()

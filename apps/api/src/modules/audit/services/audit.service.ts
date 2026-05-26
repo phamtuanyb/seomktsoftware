@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { marked } from 'marked';
 import { ErrorCode } from '@mkt-seo/shared';
 import { PrismaService } from '../../../common/services/prisma.service';
 import {
@@ -87,16 +88,24 @@ export class AuditService {
         base_url: dto.base_url,
       };
     } else {
-      if (!dto.title || !dto.content) {
+      // Sprint 6.6 — accept either pre-rendered HTML (content) or raw
+      // markdown (content_markdown). Editor live-preview sends markdown
+      // because converting on the client would require shipping marked
+      // in the bundle.
+      const html =
+        dto.content ??
+        (dto.content_markdown ? await Promise.resolve(marked.parse(dto.content_markdown)) : null);
+      if (!dto.title || !html) {
         throw new BadRequestException({
           code: ErrorCode.VALIDATION_ERROR,
-          message: 'Cần cung cấp article_id HOẶC (title + content).',
+          message: 'Cần cung cấp article_id HOẶC (title + content/content_markdown).',
         });
       }
       source = 'inline';
       input = {
         title: dto.title,
-        content: dto.content,
+        content: html,
+        content_markdown: dto.content_markdown,
         meta_title: dto.meta_title ?? '',
         meta_description: dto.meta_description ?? '',
         target_keyword: dto.target_keyword,

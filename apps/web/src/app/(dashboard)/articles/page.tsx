@@ -18,6 +18,8 @@ export default function ArticlesPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>('');
+  const [minScore, setMinScore] = useState<string>('');
+  const [maxScore, setMaxScore] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
@@ -26,10 +28,14 @@ export default function ArticlesPage() {
       else setLoadingMore(true);
       setError(null);
       try {
+        const parsedMin = minScore === '' ? undefined : Number(minScore);
+        const parsedMax = maxScore === '' ? undefined : Number(maxScore);
         const res = await contentApi.listArticles({
           limit: 20,
           q: search.trim() || undefined,
           status: status || undefined,
+          min_score: Number.isFinite(parsedMin) ? parsedMin : undefined,
+          max_score: Number.isFinite(parsedMax) ? parsedMax : undefined,
           cursor: mode === 'more' && cursor ? cursor : undefined,
         });
         if (mode === 'fresh') setItems(res.items);
@@ -43,7 +49,7 @@ export default function ArticlesPage() {
         setLoadingMore(false);
       }
     },
-    [search, status, cursor],
+    [search, status, minScore, maxScore, cursor],
   );
 
   useEffect(() => {
@@ -106,9 +112,48 @@ export default function ArticlesPage() {
               <option value="ready">Sẵn sàng</option>
               <option value="published">Đã xuất bản</option>
             </select>
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className="text-muted-foreground">Score:</span>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Min"
+                value={minScore}
+                onChange={(e) => setMinScore(e.target.value)}
+                className="w-20"
+              />
+              <span className="text-muted-foreground">–</span>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Max"
+                value={maxScore}
+                onChange={(e) => setMaxScore(e.target.value)}
+                className="w-20"
+              />
+            </div>
             <Button type="submit" variant="outline">
               <Search className="mr-2 h-4 w-4" /> Tìm
             </Button>
+            {(search || status || minScore || maxScore) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch('');
+                  setStatus('');
+                  setMinScore('');
+                  setMaxScore('');
+                  setCursor(null);
+                  void load('fresh');
+                }}
+              >
+                Reset
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>

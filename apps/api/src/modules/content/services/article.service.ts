@@ -99,6 +99,7 @@ export class ArticleService {
       userId: string;
       deletedAt: null;
       status?: string;
+      contentScore?: { gte?: number; lte?: number };
       OR?: Array<{
         title?: { contains: string; mode: 'insensitive' };
         targetKeyword?: { contains: string; mode: 'insensitive' };
@@ -112,6 +113,12 @@ export class ArticleService {
         { title: { contains: query.q, mode: 'insensitive' } },
         { targetKeyword: { contains: query.q, mode: 'insensitive' } },
       ];
+    }
+    // Sprint 6.6 — score range filter.
+    if (query.min_score !== undefined || query.max_score !== undefined) {
+      where.contentScore = {};
+      if (query.min_score !== undefined) where.contentScore.gte = query.min_score;
+      if (query.max_score !== undefined) where.contentScore.lte = query.max_score;
     }
     if (decoded) {
       // (createdAt, id) tuple compare — keep ordering deterministic even when

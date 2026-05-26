@@ -123,12 +123,16 @@ export const contentApi = {
     limit?: number;
     status?: 'draft' | 'ready' | 'published';
     q?: string;
+    min_score?: number;
+    max_score?: number;
   }) => {
     const qs = new URLSearchParams();
     if (query?.cursor) qs.set('cursor', query.cursor);
     if (query?.limit) qs.set('limit', String(query.limit));
     if (query?.status) qs.set('status', query.status);
     if (query?.q) qs.set('q', query.q);
+    if (query?.min_score !== undefined) qs.set('min_score', String(query.min_score));
+    if (query?.max_score !== undefined) qs.set('max_score', String(query.max_score));
     const suffix = qs.toString();
     return api.get<{ items: ArticleResult[]; cursor: string | null; has_more: boolean }>(
       `/content/articles${suffix ? `?${suffix}` : ''}`,
