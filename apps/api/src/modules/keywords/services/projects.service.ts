@@ -121,8 +121,14 @@ export class KeywordProjectsService {
     });
     const existingSet = new Set(existing.map((e) => e.keyword.toLowerCase()));
     const fresh = normalized.filter((k) => !existingSet.has(k.toLowerCase()));
+
+    // Skipped reflects everything the user submitted that did not land —
+    // both duplicates within the input batch and rows already in DB.
+    const inputDuplicates = dto.keywords.length - normalized.length;
+    const dbSkipped = normalized.length - fresh.length;
+
     if (fresh.length === 0) {
-      return { inserted: 0, skipped: normalized.length };
+      return { inserted: 0, skipped: inputDuplicates + dbSkipped };
     }
 
     await this.prisma.keyword.createMany({
@@ -135,7 +141,7 @@ export class KeywordProjectsService {
       })),
     });
 
-    return { inserted: fresh.length, skipped: normalized.length - fresh.length };
+    return { inserted: fresh.length, skipped: inputDuplicates + dbSkipped };
   }
 
   async listKeywords(userId: string, projectId: string): Promise<KeywordRow[]> {
