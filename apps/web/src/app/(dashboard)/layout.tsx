@@ -9,11 +9,13 @@ import {
   Mic2,
   Send,
   Settings,
+  Shield,
   ShieldCheck,
   Webhook,
 } from 'lucide-react';
 import { headers } from 'next/headers';
 import { LogoutButton } from '@/components/features/auth/logout-button';
+import { readAccessToken } from '@/lib/auth/session';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
@@ -28,8 +30,33 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 
+const ADMIN_NAV = { href: '/admin', label: 'Admin', icon: Shield };
+
+/**
+ * UI-only role check — decodes the JWT payload without verifying the
+ * signature. The backend remains the source of truth (RolesGuard on
+ * /admin/*). A forged cookie would just see the admin link briefly before
+ * every API call returns 403.
+ */
+async function isAdminFromToken(): Promise<boolean> {
+  const token = await readAccessToken();
+  if (!token) return false;
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as {
+      role?: string;
+    };
+    return payload.role === 'admin';
+  } catch {
+    return false;
+  }
+}
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   await headers(); // mark this layout dynamic — depends on session cookies.
+  const showAdmin = await isAdminFromToken();
+  const navItems = showAdmin ? [...NAV_ITEMS, ADMIN_NAV] : NAV_ITEMS;
 
   return (
     <div className="flex min-h-screen">
@@ -41,7 +68,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-4">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link

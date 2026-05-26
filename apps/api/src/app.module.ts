@@ -24,6 +24,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { PublisherModule } from './modules/publisher/publisher.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -71,6 +72,7 @@ import { AppController } from './app.controller';
     PublisherModule,
     WebhooksModule,
     PluginsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
