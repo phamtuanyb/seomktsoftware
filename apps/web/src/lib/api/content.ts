@@ -60,7 +60,18 @@ export interface ArticleResult {
   target_keyword: string;
   word_count: number;
   content_score: number;
-  content_score_breakdown: Record<string, { score: number; passed: boolean; note?: string }>;
+  content_score_breakdown: Record<
+    string,
+    {
+      score: number;
+      passed?: boolean;
+      status?: 'good' | 'warning' | 'fail';
+      name?: string;
+      message?: string;
+      note?: string;
+      suggestions?: Array<{ text: string; action: 'manual' | 'auto-fixable' }>;
+    }
+  >;
   ai_model: string;
   ai_cost_usd: number;
   is_stub: boolean;

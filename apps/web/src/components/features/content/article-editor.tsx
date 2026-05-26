@@ -90,16 +90,31 @@ export function ArticleEditor({ article }: ArticleEditorProps) {
                 Score breakdown
               </p>
               <ul className="mt-1 space-y-1 text-xs">
-                {Object.entries(article.content_score_breakdown).map(([rule, val]) => (
-                  <li key={rule} className="flex items-baseline justify-between gap-3">
-                    <span className={val.passed ? 'text-green-700' : 'text-amber-700'}>
-                      {val.passed ? '✓' : '⚠'} {rule}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {val.score}/100 {val.note ? `— ${val.note}` : ''}
-                    </span>
-                  </li>
-                ))}
+                {Object.entries(article.content_score_breakdown).map(([rule, val]) => {
+                  // The breakdown now follows the 12-rule TN7 shape — status
+                  // is "good" | "warning" | "fail", message has a human note.
+                  const v = val as {
+                    score: number;
+                    status?: 'good' | 'warning' | 'fail';
+                    passed?: boolean;
+                    name?: string;
+                    message?: string;
+                    note?: string;
+                  };
+                  const passed = v.passed ?? v.status === 'good';
+                  const label = v.name ?? rule;
+                  const note = v.message ?? v.note;
+                  return (
+                    <li key={rule} className="flex items-baseline justify-between gap-3">
+                      <span className={passed ? 'text-green-700' : 'text-amber-700'}>
+                        {passed ? '✓' : '⚠'} {label}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {v.score}/100 {note ? `— ${note}` : ''}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
