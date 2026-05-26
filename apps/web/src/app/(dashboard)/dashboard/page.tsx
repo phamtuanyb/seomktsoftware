@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { readAccessToken } from '@/lib/auth/session';
 import { backendFetch } from '@/lib/auth/backend';
 import type { AuthUser, ApiResponseBody } from '@mkt-seo/shared';
@@ -18,6 +19,26 @@ async function fetchMe(): Promise<AuthUser | null> {
   return body.success ? body.data : null;
 }
 
+/**
+ * Sprint 10.5 — read full profile (includes preferences_json) to decide
+ * whether to redirect to /onboarding. AuthUser doesn't carry prefs so we
+ * hit /users/me separately. Cheap (single round-trip) and only on first
+ * dashboard visit.
+ */
+async function fetchPrefs(): Promise<{ onboarded_at?: string } | null> {
+  const token = await readAccessToken();
+  if (!token) return null;
+  const res = await backendFetch('/v1/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const body = (await res.json()) as ApiResponseBody<{
+    preferences_json?: { onboarded_at?: string };
+  }>;
+  if (!body.success) return null;
+  return body.data.preferences_json ?? {};
+}
+
 const SHORTCUTS = [
   { href: '/keywords', label: 'Nghiên cứu từ khóa', sprint: 'Sprint 3' },
   { href: '/content', label: 'Sinh nội dung AI', sprint: 'Sprint 4' },
@@ -26,6 +47,10 @@ const SHORTCUTS = [
 ];
 
 export default async function DashboardPage() {
+  const prefs = await fetchPrefs();
+  if (prefs && !prefs.onboarded_at) {
+    redirect('/onboarding');
+  }
   const me = await fetchMe();
   return (
     <div className="space-y-6">

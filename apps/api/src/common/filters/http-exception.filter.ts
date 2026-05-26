@@ -1,14 +1,8 @@
-import type {
-  ArgumentsHost} from '@nestjs/common';
-import {
-  Catch,
-  HttpException,
-  HttpStatus,
-  Logger,
-  type ExceptionFilter,
-} from '@nestjs/common';
+import type { ArgumentsHost } from '@nestjs/common';
+import { Catch, HttpException, HttpStatus, Logger, type ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ErrorCode, type ApiErrorBody } from '@mkt-seo/shared';
+import { captureException } from '../observability/sentry';
 
 interface ExceptionPayload {
   code?: ErrorCode;
@@ -42,6 +36,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         { err: exception, path: req.url, method: req.method, code },
         'Unhandled exception',
       );
+      // Sprint 10.5 — ship 5xx to Sentry. No-op when SENTRY_DSN is unset.
+      const user = (req as Request & { user?: { id?: string } }).user;
+      captureException(exception, { userId: user?.id, path: req.url, status });
     }
 
     const body: ApiErrorBody = {

@@ -6,6 +6,11 @@ import * as path from 'node:path';
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+// Sprint 10.5 — init Sentry as early as possible so import-time crashes
+// (config errors, missing migrations) reach the dashboard too.
+import { initSentry, captureException as captureBootstrap } from './common/observability/sentry';
+initSentry();
+
 import { NestFactory, Reflector } from '@nestjs/core';
 import {
   ClassSerializerInterceptor,
@@ -87,5 +92,6 @@ function configureSwagger(app: INestApplication, cfg: ConfigService): void {
 bootstrap().catch((err) => {
   // eslint-disable-next-line no-console
   console.error('[bootstrap] failed:', err);
+  captureBootstrap(err);
   process.exit(1);
 });

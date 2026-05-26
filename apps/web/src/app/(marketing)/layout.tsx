@@ -23,8 +23,19 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t bg-muted">
-        <div className="container py-8 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} MKT SEO AI. Built for Vietnamese SEO teams.
+        <div className="container flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+          <span>© {new Date().getFullYear()} MKT SEO AI. Built for Vietnamese SEO teams.</span>
+          <nav className="flex flex-wrap items-center gap-4">
+            <Link href="/help" className="hover:text-foreground">
+              Trợ giúp
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Điều khoản
+            </Link>
+            <Link href="/privacy" className="hover:text-foreground">
+              Bảo mật
+            </Link>
+          </nav>
         </div>
       </footer>
     </div>
