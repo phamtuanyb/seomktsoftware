@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { ErrorCode } from '@mkt-seo/shared';
 import { RedisService } from '../../../common/services/redis.service';
@@ -10,6 +10,7 @@ import {
   type OutlineFormat,
   type OutlineIntent,
 } from '../dto/generate-outline.dto';
+import { type ParseManualOutlineDto } from '../dto/parse-manual-outline.dto';
 import { outlineSchema, type Outline, type OutlineWithMetadata } from '../schemas/outline.schema';
 import { buildOutlineSystemPrompt, buildOutlineUserPrompt } from '../prompts/outline.prompt';
 
@@ -133,6 +134,44 @@ export class OutlineService {
     return result;
   }
 
+  fromManualInput(dto: ParseManualOutlineDto): OutlineWithMetadata {
+    const keyword = dto.keyword.trim();
+    const format: OutlineFormat = dto.format ?? 'blog';
+    const targetWordCount = dto.target_word_count ?? 2000;
+    const language = dto.language ?? 'vi';
+    const parsed = this.parseManualOutline(dto.raw_outline, keyword);
+
+    if (!parsed.h1.toLowerCase().includes(keyword.toLowerCase())) {
+      parsed.h1 = `${keyword}: ${parsed.h1}`;
+    }
+    if (!parsed.meta_title.toLowerCase().includes(keyword.toLowerCase())) {
+      parsed.meta_title = this.fitMetaTitle(keyword, parsed.h1);
+    }
+    if (!parsed.meta_description.toLowerCase().includes(keyword.toLowerCase())) {
+      parsed.meta_description = this.fitMetaDescription(keyword, parsed.h1);
+    }
+
+    return {
+      meta_title: parsed.meta_title,
+      meta_description: parsed.meta_description,
+      h1: parsed.h1,
+      sections: parsed.sections,
+      metadata: {
+        based_on_serps: [],
+        ai_model: 'manual',
+        tokens_used: { input: 0, output: 0 },
+        cost_usd: 0,
+        is_stub: false,
+        target_word_count: targetWordCount,
+        intent: 'manual',
+        format,
+        language,
+        cached: false,
+        generated_at: new Date().toISOString(),
+      },
+    };
+  }
+
   private inferIntent(keyword: string): OutlineIntent {
     const lower = keyword.toLowerCase();
     if (/(mua|gia|ban|order|dat mua|book|dang ky|signup|sign up)/.test(lower)) {
@@ -142,6 +181,105 @@ export class OutlineService {
       return 'commercial';
     }
     return 'info';
+  }
+
+  private parseManualOutline(raw: string, keyword: string): Outline {
+    const lines = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    let metaTitle = '';
+    let metaDescription = '';
+    let h1 = '';
+    const sections: Outline['sections'] = [];
+    let currentSection: Outline['sections'][number] | null = null;
+    let currentSubsection: Outline['sections'][number]['subsections'][number] | null = null;
+
+    const pushSection = (title: string) => {
+      currentSection = { h2: title, subsections: [] };
+      sections.push(currentSection);
+      currentSubsection = null;
+    };
+
+    const pushSubsection = (title: string) => {
+      if (!currentSection) pushSection('Noi dung chinh');
+      currentSubsection = { h3: title, bullets: [] };
+      currentSection!.subsections.push(currentSubsection);
+    };
+
+    for (const line of lines) {
+      if (/^meta\s*title\s*:/i.test(line)) {
+        metaTitle = line.replace(/^meta\s*title\s*:/i, '').trim();
+        continue;
+      }
+      if (/^meta\s*description\s*:/i.test(line)) {
+        metaDescription = line.replace(/^meta\s*description\s*:/i, '').trim();
+        continue;
+      }
+      if (/^h1\s*:/i.test(line)) {
+        h1 = line.replace(/^h1\s*:/i, '').trim();
+        continue;
+      }
+      if (/^h2\s*:/i.test(line)) {
+        pushSection(line.replace(/^h2\s*:/i, '').trim());
+        continue;
+      }
+      if (/^h3\s*:/i.test(line)) {
+        pushSubsection(line.replace(/^h3\s*:/i, '').trim());
+        continue;
+      }
+      if (/^###\s+/.test(line)) {
+        pushSubsection(line.replace(/^###\s+/, '').trim());
+        continue;
+      }
+      if (/^##\s+/.test(line)) {
+        pushSection(line.replace(/^##\s+/, '').trim());
+        continue;
+      }
+      if (/^#\s+/.test(line)) {
+        h1 = line.replace(/^#\s+/, '').trim();
+        continue;
+      }
+      if (/^[-*]\s+/.test(line)) {
+        if (!currentSubsection) pushSubsection('Y chinh');
+        currentSubsection!.bullets.push(line.replace(/^[-*]\s+/, '').trim());
+        continue;
+      }
+    }
+
+    const cleanedSections = sections
+      .map((section) => ({
+        ...section,
+        subsections: section.subsections
+          .filter((subsection) => subsection.h3 && subsection.bullets.length > 0)
+          .slice(0, 1)
+          .map((subsection) => ({
+            ...subsection,
+            bullets: subsection.bullets.slice(0, 2),
+          })),
+      }))
+      .filter((section) => section.h2)
+      .slice(0, 6);
+
+    if (!h1) {
+      h1 = cleanedSections[0]?.h2 ? `${keyword}: ${cleanedSections[0].h2}` : keyword;
+    }
+    if (!metaTitle) metaTitle = this.fitMetaTitle(keyword, h1);
+    if (!metaDescription) metaDescription = this.fitMetaDescription(keyword, h1);
+    if (cleanedSections.length === 0) {
+      throw new BadRequestException({
+        code: ErrorCode.VALIDATION_ERROR,
+        message: 'Outline nhap tay khong hop le. Can it nhat 1 H2 hoac 1 dong H2: ...',
+      });
+    }
+
+    return {
+      meta_title: metaTitle,
+      meta_description: metaDescription,
+      h1,
+      sections: cleanedSections,
+    };
   }
 
   private parseAndValidate(raw: string): Outline {

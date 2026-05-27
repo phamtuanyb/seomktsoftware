@@ -7,6 +7,10 @@ import { OutlineService } from './services/outline.service';
 import { ArticleService } from './services/article.service';
 import { ArticleEditorService } from './services/article-editor.service';
 import { ArticlePostProcessService } from './services/article-post-process.service';
+import { ContentBatchService } from './services/content-batch.service';
+import { ContentBatchRunnerService } from './services/content-batch-runner.service';
+import { ContentBatchQueue } from './workers/content-batch.queue';
+import { ContentBatchProcessor } from './workers/content-batch.processor';
 
 /** Section 8 — TN3 outline + TN4 article (streaming). */
 @Module({
@@ -20,7 +24,18 @@ import { ArticlePostProcessService } from './services/article-post-process.servi
     ArticleService,
     ArticleEditorService,
     ArticlePostProcessService,
+    ContentBatchService,
+    ContentBatchRunnerService,
+    { provide: 'ContentBatchRunnerService', useExisting: ContentBatchRunnerService },
+    ContentBatchQueue,
+    ContentBatchProcessor,
   ],
-  exports: [OutlineService, ArticleService, ArticleEditorService, ArticlePostProcessService],
+  exports: [
+    OutlineService,
+    ArticleService,
+    ArticleEditorService,
+    ArticlePostProcessService,
+    ContentBatchService,
+  ],
 })
 export class ContentModule {}

@@ -24,11 +24,14 @@ import { QuotaGuard } from '../../common/guards/quota.guard';
 import { QuotaService } from '../../common/services/quota.service';
 import { GenerateOutlineDto } from './dto/generate-outline.dto';
 import { GenerateArticleDto } from './dto/generate-article.dto';
+import { CreateContentBatchJobDto, ListContentBatchJobsQueryDto } from './dto/content-batch.dto';
+import { ParseManualOutlineDto } from './dto/parse-manual-outline.dto';
 import { ListArticlesQueryDto, UpdateArticleDto } from './dto/update-article.dto';
 import { RegenerateSectionDto, RewriteDto } from './dto/rewrite-article.dto';
 import { OutlineService } from './services/outline.service';
 import { ArticleService } from './services/article.service';
 import { ArticleEditorService } from './services/article-editor.service';
+import { ContentBatchService } from './services/content-batch.service';
 import type { OutlineWithMetadata } from './schemas/outline.schema';
 
 /** Section 8 — TN3 outline (live) + TN4 article writer (live with SSE). */
@@ -40,6 +43,7 @@ export class ContentController {
     private readonly outlines: OutlineService,
     private readonly articles: ArticleService,
     private readonly editor: ArticleEditorService,
+    private readonly batches: ContentBatchService,
     private readonly quotas: QuotaService,
   ) {}
 
@@ -57,6 +61,18 @@ export class ContentController {
     @CurrentUser('id') _userId: string,
   ): Promise<OutlineWithMetadata> {
     return this.outlines.generate(dto);
+  }
+
+  @Post('outline/parse')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Parse manual outline text into the same structure used by the article writer.',
+  })
+  parseManualOutline(
+    @Body() dto: ParseManualOutlineDto,
+    @CurrentUser('id') _userId: string,
+  ): OutlineWithMetadata {
+    return this.outlines.fromManualInput(dto);
   }
 
   @Post('article')
@@ -120,6 +136,37 @@ export class ContentController {
     const article = await this.articles.generate(dto, userId);
     await this.quotas.consumeQuota(userId, 'articles', 1);
     res.json({ success: true, data: article });
+  }
+
+  @Post('batch-jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Create a sequential batch of keywords; each item generates outline then writes article.',
+  })
+  createBatchJob(@Body() dto: CreateContentBatchJobDto, @CurrentUser('id') userId: string) {
+    return this.batches.create(userId, dto);
+  }
+
+  @Get('batch-jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List content batch jobs with items and progress.' })
+  listBatchJobs(@CurrentUser('id') userId: string, @Query() query: ListContentBatchJobsQueryDto) {
+    return this.batches.list(userId, query);
+  }
+
+  @Get('batch-jobs/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get one content batch job with item-level status.' })
+  getBatchJob(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.batches.get(userId, id);
+  }
+
+  @Delete('batch-jobs/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel a running or pending content batch job.' })
+  cancelBatchJob(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.batches.cancel(userId, id);
   }
 
   @Get('articles')

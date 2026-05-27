@@ -53,6 +53,14 @@ export interface GenerateOutlineRequest {
   language?: string;
 }
 
+export interface ParseManualOutlineRequest {
+  keyword: string;
+  raw_outline: string;
+  format?: OutlineFormat;
+  target_word_count?: number;
+  language?: string;
+}
+
 export interface ArticleResult {
   id: string;
   title: string;
@@ -80,6 +88,42 @@ export interface ArticleResult {
   ai_cost_usd: number;
   is_stub: boolean;
   brand_voice_id?: string | null;
+}
+
+export interface ContentBatchJobItem {
+  id: string;
+  order_index: number;
+  keyword: string;
+  status: string;
+  article_id: string | null;
+  error_message: string | null;
+  generated_outline_json: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentBatchJob {
+  id: string;
+  mode: string;
+  status: string;
+  config: Record<string, unknown>;
+  total_items: number;
+  completed_items: number;
+  failed_items: number;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  items: ContentBatchJobItem[];
+}
+
+export interface CreateContentBatchJobRequest {
+  keywords_text: string;
+  format?: OutlineFormat;
+  target_word_count?: number;
+  language?: string;
+  brand_voice_id?: string;
 }
 
 export interface GenerateArticleRequest {
@@ -128,9 +172,27 @@ export const contentApi = {
   generateOutline: (body: GenerateOutlineRequest) =>
     api.post<OutlineWithMetadata>('/content/outline', body),
 
+  parseManualOutline: (body: ParseManualOutlineRequest) =>
+    api.post<OutlineWithMetadata>('/content/outline/parse', body),
+
   /** Non-streaming article generation — returns full ArticleResult. */
   generateArticle: (body: GenerateArticleRequest) =>
     api.post<ArticleResult>('/content/article', body),
+
+  createBatchJob: (body: CreateContentBatchJobRequest) =>
+    api.post<ContentBatchJob>('/content/batch-jobs', body),
+  listBatchJobs: (query?: { cursor?: string; limit?: number; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (query?.cursor) qs.set('cursor', query.cursor);
+    if (query?.limit) qs.set('limit', String(query.limit));
+    if (query?.status) qs.set('status', query.status);
+    const suffix = qs.toString();
+    return api.get<{ items: ContentBatchJob[]; cursor: string | null; has_more: boolean }>(
+      `/content/batch-jobs${suffix ? `?${suffix}` : ''}`,
+    );
+  },
+  getBatchJob: (id: string) => api.get<ContentBatchJob>(`/content/batch-jobs/${id}`),
+  cancelBatchJob: (id: string) => api.delete<ContentBatchJob>(`/content/batch-jobs/${id}`),
 
   listArticles: (query?: {
     cursor?: string;

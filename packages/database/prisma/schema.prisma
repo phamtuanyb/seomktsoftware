@@ -49,6 +49,7 @@ model User {
   auditLogs       AuditLog[]
   pluginInstalls  UserPluginInstall[]
   pipelineRuns    PipelineRun[]
+  contentBatchJobs ContentBatchJob[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -229,10 +230,54 @@ model Article {
   brandVoice  BrandVoice?  @relation(fields: [brandVoiceId], references: [id], onDelete: SetNull)
   images      Image[]
   publishJobs PublishJob[]
+  batchItems  ContentBatchJobItem[]
 
   @@index([userId, status], map: "idx_articles_user_status")
   @@index([createdAt(sort: Desc)], map: "idx_articles_created")
   @@map("articles")
+}
+
+model ContentBatchJob {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  mode            String    @default("keyword_list") @db.VarChar(30)
+  status          String    @default("pending") @db.VarChar(20) // pending, running, succeeded, partial, failed, cancelled
+  configJson      Json      @map("config_json")
+  errorMessage    String?   @map("error_message")
+  startedAt       DateTime? @map("started_at") @db.Timestamp(6)
+  completedAt     DateTime? @map("completed_at") @db.Timestamp(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ContentBatchJobItem[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_content_batch_jobs_user")
+  @@index([status], map: "idx_content_batch_jobs_status")
+  @@map("content_batch_jobs")
+}
+
+model ContentBatchJobItem {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchJobId          String    @map("batch_job_id") @db.Uuid
+  orderIndex          Int       @map("order_index")
+  keyword             String    @db.VarChar(255)
+  status              String    @default("pending") @db.VarChar(30) // pending, generating_outline, writing_article, done, failed, cancelled
+  inputOutlineJson    Json?     @map("input_outline_json")
+  generatedOutlineJson Json?    @map("generated_outline_json")
+  articleId           String?   @map("article_id") @db.Uuid
+  errorMessage        String?   @map("error_message")
+  startedAt           DateTime? @map("started_at") @db.Timestamp(6)
+  completedAt         DateTime? @map("completed_at") @db.Timestamp(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  batchJob ContentBatchJob @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+  article  Article?        @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@unique([batchJobId, orderIndex], map: "uq_content_batch_job_items_order")
+  @@index([batchJobId, status], map: "idx_content_batch_job_items_job_status")
+  @@map("content_batch_job_items")
 }
 
 // -------------------------------------------------------------------------
