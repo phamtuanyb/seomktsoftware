@@ -55,28 +55,37 @@ export class ClaudeProvider implements LlmProvider {
       return this.stubGenerate(opts, apiModel);
     }
 
-    const response = await this.client.messages.create({
-      model: apiModel,
-      max_tokens: opts.maxTokens ?? 4096,
-      temperature: opts.temperature ?? 0.7,
-      system: opts.system,
-      messages: [{ role: 'user', content: opts.prompt }],
-      stop_sequences: opts.stopSequences,
-    });
+    try {
+      const response = await this.client.messages.create({
+        model: apiModel,
+        max_tokens: opts.maxTokens ?? 4096,
+        temperature: opts.temperature ?? 0.7,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.prompt }],
+        stop_sequences: opts.stopSequences,
+      });
 
-    const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === 'text');
-    const content = textBlocks.map((b) => b.text).join('');
-    const tokensUsed = {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
-    };
-    return {
-      content,
-      tokensUsed,
-      modelUsed: response.model,
-      costUsd: this.estimateCost(apiModel, tokensUsed),
-      isStub: false,
-    };
+      const textBlocks = response.content.filter(
+        (b): b is Anthropic.TextBlock => b.type === 'text',
+      );
+      const content = textBlocks.map((b) => b.text).join('');
+      const tokensUsed = {
+        input: response.usage.input_tokens,
+        output: response.usage.output_tokens,
+      };
+      return {
+        content,
+        tokensUsed,
+        modelUsed: response.model,
+        costUsd: this.estimateCost(apiModel, tokensUsed),
+        isStub: false,
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Claude generate failed; falling back to stub output: ${this.errorMessage(err)}`,
+      );
+      return this.stubGenerate(opts, apiModel);
+    }
   }
 
   async *generateStream(opts: LlmGenerateOptions): AsyncIterable<LlmStreamEvent> {
@@ -87,41 +96,48 @@ export class ClaudeProvider implements LlmProvider {
       return;
     }
 
-    const stream = this.client.messages.stream({
-      model: apiModel,
-      max_tokens: opts.maxTokens ?? 8192,
-      temperature: opts.temperature ?? 0.8,
-      system: opts.system,
-      messages: [{ role: 'user', content: opts.prompt }],
-      stop_sequences: opts.stopSequences,
-    });
+    try {
+      const stream = this.client.messages.stream({
+        model: apiModel,
+        max_tokens: opts.maxTokens ?? 8192,
+        temperature: opts.temperature ?? 0.8,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.prompt }],
+        stop_sequences: opts.stopSequences,
+      });
 
-    let inputTokens = 0;
-    let outputTokens = 0;
+      let inputTokens = 0;
+      let outputTokens = 0;
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        yield { type: 'token', content: event.delta.text };
-      } else if (event.type === 'message_delta' && event.usage) {
-        outputTokens = event.usage.output_tokens;
-      } else if (event.type === 'message_start' && event.message.usage) {
-        inputTokens = event.message.usage.input_tokens;
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          yield { type: 'token', content: event.delta.text };
+        } else if (event.type === 'message_delta' && event.usage) {
+          outputTokens = event.usage.output_tokens;
+        } else if (event.type === 'message_start' && event.message.usage) {
+          inputTokens = event.message.usage.input_tokens;
+        }
       }
-    }
 
-    const final = await stream.finalMessage();
-    yield {
-      type: 'finish',
-      reason: final.stop_reason ?? 'end_turn',
-      tokensUsed: {
-        input: final.usage.input_tokens || inputTokens,
-        output: final.usage.output_tokens || outputTokens,
-      },
-      costUsd: this.estimateCost(apiModel, {
-        input: final.usage.input_tokens || inputTokens,
-        output: final.usage.output_tokens || outputTokens,
-      }),
-    };
+      const final = await stream.finalMessage();
+      yield {
+        type: 'finish',
+        reason: final.stop_reason ?? 'end_turn',
+        tokensUsed: {
+          input: final.usage.input_tokens || inputTokens,
+          output: final.usage.output_tokens || outputTokens,
+        },
+        costUsd: this.estimateCost(apiModel, {
+          input: final.usage.input_tokens || inputTokens,
+          output: final.usage.output_tokens || outputTokens,
+        }),
+      };
+    } catch (err) {
+      this.logger.warn(
+        `Claude stream failed; falling back to stub stream: ${this.errorMessage(err)}`,
+      );
+      yield* this.stubStream(opts, apiModel);
+    }
   }
 
   // ----- stub mode helpers -----
@@ -204,5 +220,9 @@ export class ClaudeProvider implements LlmProvider {
     const price = ClaudeProvider.PRICING[apiModel];
     if (!price) return 0;
     return (tokens.input / 1_000_000) * price.input + (tokens.output / 1_000_000) * price.output;
+  }
+
+  private errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
   }
 }
