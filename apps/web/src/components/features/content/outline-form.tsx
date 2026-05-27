@@ -26,8 +26,8 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     setLoading(true);
     try {
@@ -55,40 +55,46 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
           <div>
             <CardTitle>TN3 — AI Outline Generator</CardTitle>
             <CardDescription>
-              Phân tích top 5 SERP rồi sinh outline tốt hơn. Section 8 TN3 — outline 8-12 heading
-              trong &lt; 20s.
+              Phan tich top 5 SERP roi sinh outline gon hon: Meta Title, Meta Description, H1,
+              H2/H3 du dung de duyet truoc khi viet.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="keyword">Keyword chính</Label>
+            <Label htmlFor="keyword">Keyword chinh</Label>
             <Input
               id="keyword"
               required
               minLength={2}
               maxLength={255}
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="VD: SEO local cho doanh nghiệp nhỏ"
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="VD: SEO local cho doanh nghiep nho"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="intent">Intent (tự suy nếu để trống)</Label>
+              <Label htmlFor="intent">Intent (de trong neu muon tu suy)</Label>
               <Select
                 id="intent"
                 value={intent}
-                onChange={(e) =>
+                onChange={(event) =>
                   setIntent(
-                    e.target.value as 'info' | 'commercial' | 'transactional' | 'navigational' | '',
+                    event.target.value as
+                      | 'info'
+                      | 'commercial'
+                      | 'transactional'
+                      | 'navigational'
+                      | '',
                   )
                 }
               >
-                <option value="">Tự suy</option>
+                <option value="">Tu suy</option>
                 <option value="info">Info</option>
                 <option value="commercial">Commercial</option>
                 <option value="transactional">Transactional</option>
@@ -101,7 +107,7 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
               <Select
                 id="format"
                 value={format}
-                onChange={(e) => setFormat(e.target.value as typeof format)}
+                onChange={(event) => setFormat(event.target.value as typeof format)}
               >
                 <option value="blog">Blog</option>
                 <option value="listicle">Listicle</option>
@@ -115,7 +121,7 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="words">Số từ mục tiêu</Label>
+              <Label htmlFor="words">So tu muc tieu</Label>
               <Input
                 id="words"
                 type="number"
@@ -123,23 +129,25 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
                 max={5000}
                 step={100}
                 value={wordCount}
-                onChange={(e) => setWordCount(Number(e.target.value) || 2000)}
+                onChange={(event) => setWordCount(Number(event.target.value) || 2000)}
               />
             </div>
           </div>
 
           {error && (
-            <Textarea readOnly className="text-sm text-destructive" value={`Lỗi: ${error}`} />
+            <Textarea readOnly className="text-sm text-destructive" value={`Loi: ${error}`} />
           )}
 
           <Button type="submit" disabled={loading || keyword.trim().length < 2}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang phân tích SERP...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Dang phan tich SERP...
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" /> Sinh outline
+                <Sparkles className="mr-2 h-4 w-4" />
+                Sinh outline
               </>
             )}
           </Button>

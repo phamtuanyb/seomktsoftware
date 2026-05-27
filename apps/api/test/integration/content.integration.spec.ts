@@ -117,6 +117,8 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
+      expect(res.body.data.meta_title.toLowerCase()).toContain('seo test');
+      expect(res.body.data.meta_description.toLowerCase()).toContain('seo test');
       expect(res.body.data.h1.toLowerCase()).toContain('seo test');
       expect(res.body.data.sections.length).toBeGreaterThanOrEqual(3);
       expect(res.body.data.metadata.is_stub).toBe(true);
@@ -154,6 +156,9 @@ describe('Content (integration) — TN3 + TN4 + TN5', () => {
   // ----- TN4 -----
 
   const sampleOutline = {
+    meta_title: 'Content marketing tong quan 2026',
+    meta_description:
+      'Content marketing tong quan 2026 cho doanh nghiep: outline ro rang, dung intent va san sang viet thanh bai SEO hoan chinh.',
     h1: 'Content marketing tổng quan 2026',
     sections: [
       {

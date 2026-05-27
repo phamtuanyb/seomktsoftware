@@ -13,6 +13,8 @@ export interface OutlineSection {
 }
 
 export interface OutlineWithMetadata {
+  meta_title: string;
+  meta_description: string;
   h1: string;
   sections: OutlineSection[];
   metadata: {
@@ -82,7 +84,12 @@ export interface ArticleResult {
 
 export interface GenerateArticleRequest {
   keyword: string;
-  outline: { h1: string; sections: OutlineSection[] };
+  outline: {
+    meta_title?: string;
+    meta_description?: string;
+    h1: string;
+    sections: OutlineSection[];
+  };
   brand_voice_id?: string;
   tone?: 'expert' | 'friendly' | 'sales' | 'educational' | 'storytelling';
   format?: OutlineFormat;

@@ -2,6 +2,9 @@ import type { Outline } from '../schemas/outline.schema';
 import type { ArticleTone } from '../dto/generate-article.dto';
 import type { OutlineFormat } from '../dto/generate-outline.dto';
 
+type ArticleOutline = Pick<Outline, 'h1' | 'sections'> &
+  Partial<Pick<Outline, 'meta_title' | 'meta_description'>>;
+
 export interface BrandVoiceProfileLite {
   brand_name?: string;
   tone?: { primary?: string; secondary?: string[] };
@@ -20,7 +23,7 @@ export interface ReferenceArticleLite {
 
 export interface BuildArticlePromptArgs {
   keyword: string;
-  outline: Outline;
+  outline: ArticleOutline;
   tone?: ArticleTone;
   format: OutlineFormat;
   targetWordCount: number;
@@ -173,7 +176,7 @@ function buildFormatRules(format: OutlineFormat): string {
   return rules[format];
 }
 
-function renderOutlineAsMarkdown(outline: Outline): string {
+function renderOutlineAsMarkdown(outline: ArticleOutline): string {
   const lines: string[] = [`# ${outline.h1}`];
   for (const section of outline.sections) {
     lines.push(`\n## ${section.h2}`);

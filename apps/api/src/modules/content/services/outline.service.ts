@@ -13,29 +13,11 @@ import {
 import { outlineSchema, type Outline, type OutlineWithMetadata } from '../schemas/outline.schema';
 import { buildOutlineSystemPrompt, buildOutlineUserPrompt } from '../prompts/outline.prompt';
 
-/**
- * Section 8 TN3 — AI Outline Generator.
- *
- * Pipeline:
- *   1. SerpService.topResults(keyword) → 5 SERP entries with h1/h2/h3 + word
- *      count (24h cache).
- *   2. Build prompt → ask Claude Sonnet 4 for a JSON outline that improves on
- *      top SERP without copying.
- *   3. Validate with Zod (outlineSchema). On parse/shape failure → retry once
- *      with a "fix the JSON" prompt before failing.
- *   4. Cache the validated outline for 30 days, keyed by
- *      sha256(keyword|intent|format|word_count|lang).
- *
- * Acceptance (Section 8 TN3):
- *   - Outline 8-12 heading <20 s
- *   - 100% H1 contains target keyword
- *   - User accept rate ≥ 80 %  (measured later)
- */
 @Injectable()
 export class OutlineService {
   private readonly logger = new Logger(OutlineService.name);
   private static readonly CACHE_PREFIX = 'outline:';
-  private static readonly CACHE_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days per spec
+  private static readonly CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 
   constructor(
     private readonly redis: RedisService,
@@ -51,7 +33,6 @@ export class OutlineService {
     const language = dto.language ?? 'vi';
     const country = dto.country ?? 'VN';
 
-    // Cache lookup
     const cacheKey = this.cacheKey({ keyword, intent, format, targetWordCount, language });
     const cachedRaw = await this.redis.getClient().get(cacheKey);
     if (cachedRaw) {
@@ -59,11 +40,10 @@ export class OutlineService {
         const cached = JSON.parse(cachedRaw) as OutlineWithMetadata;
         return { ...cached, metadata: { ...cached.metadata, cached: true } };
       } catch {
-        this.logger.warn(`Corrupt outline cache for ${cacheKey} — regenerating`);
+        this.logger.warn(`Corrupt outline cache for ${cacheKey}; regenerating`);
       }
     }
 
-    // 1. Fetch SERP context
     const serpResults = await this.serp.topResults({
       keyword,
       language,
@@ -71,7 +51,6 @@ export class OutlineService {
       limit: 5,
     });
 
-    // 2. Build prompt
     const provider = this.llm.select(model);
     const systemPrompt = buildOutlineSystemPrompt(language);
     const userPrompt = buildOutlineUserPrompt({
@@ -83,7 +62,6 @@ export class OutlineService {
       serpResults,
     });
 
-    // 3. Call LLM
     const llmResult = await provider.generate({
       system: systemPrompt,
       prompt: userPrompt,
@@ -92,17 +70,16 @@ export class OutlineService {
       model,
     });
 
-    // 4. Parse + validate (retry once if JSON broken)
     let outline: Outline;
     try {
       outline = this.parseAndValidate(llmResult.content);
     } catch (firstErr) {
       this.logger.warn(
-        `Outline JSON invalid on first try (${(firstErr as Error).message}) — retrying with fix prompt`,
+        `Outline JSON invalid on first try (${(firstErr as Error).message}); retrying with fix prompt`,
       );
       const repaired = await provider.generate({
         system: systemPrompt,
-        prompt: `Lần trước bạn trả về JSON sai schema. Lỗi: ${(firstErr as Error).message}.\n\nResponse cũ của bạn:\n${llmResult.content}\n\nHãy SỬA lại JSON cho đúng schema gốc và CHỈ trả JSON thuần, không markdown.`,
+        prompt: `Lan truoc ban tra ve JSON sai schema. Loi: ${(firstErr as Error).message}.\n\nResponse cu cua ban:\n${llmResult.content}\n\nHay sua lai JSON cho dung schema goc va chi tra JSON thuan, khong markdown.`,
         maxTokens: 3000,
         temperature: 0.3,
         model,
@@ -112,23 +89,30 @@ export class OutlineService {
       } catch (secondErr) {
         throw new BadGatewayException({
           code: ErrorCode.AI_PROVIDER_ERROR,
-          message: 'AI không trả về JSON đúng schema sau 2 lần thử',
+          message: 'AI khong tra ve JSON dung schema sau 2 lan thu',
           details: { reason: (secondErr as Error).message },
         });
       }
     }
 
-    // 5. Verify acceptance: H1 must contain keyword (best-effort soft-fix).
     if (!outline.h1.toLowerCase().includes(keyword.toLowerCase())) {
-      this.logger.warn(`H1 missing keyword — patching. h1="${outline.h1}", keyword="${keyword}"`);
+      this.logger.warn(`H1 missing keyword; patching. h1="${outline.h1}", keyword="${keyword}"`);
       outline.h1 = `${keyword}: ${outline.h1}`;
+    }
+    if (!outline.meta_title.toLowerCase().includes(keyword.toLowerCase())) {
+      outline.meta_title = this.fitMetaTitle(keyword, outline.h1);
+    }
+    if (!outline.meta_description.toLowerCase().includes(keyword.toLowerCase())) {
+      outline.meta_description = this.fitMetaDescription(keyword, outline.h1);
     }
 
     const result: OutlineWithMetadata = {
+      meta_title: outline.meta_title,
+      meta_description: outline.meta_description,
       h1: outline.h1,
       sections: outline.sections,
       metadata: {
-        based_on_serps: serpResults.map((r) => r.url),
+        based_on_serps: serpResults.map((result) => result.url),
         ai_model: llmResult.modelUsed,
         tokens_used: llmResult.tokensUsed,
         cost_usd: llmResult.costUsd,
@@ -142,7 +126,6 @@ export class OutlineService {
       },
     };
 
-    // 6. Cache 30 days.
     await this.redis
       .getClient()
       .set(cacheKey, JSON.stringify(result), 'EX', OutlineService.CACHE_TTL_SECONDS);
@@ -150,13 +133,12 @@ export class OutlineService {
     return result;
   }
 
-  /** Heuristic intent detection used when caller does not pass one. */
   private inferIntent(keyword: string): OutlineIntent {
     const lower = keyword.toLowerCase();
-    if (/(mua|giá|bán|order|đặt mua|book|đăng ký|signup|sign up)/.test(lower)) {
+    if (/(mua|gia|ban|order|dat mua|book|dang ky|signup|sign up)/.test(lower)) {
       return 'transactional';
     }
-    if (/(so sánh|review|đánh giá|tốt nhất|best|top|vs|hoặc)/.test(lower)) {
+    if (/(so sanh|review|danh gia|tot nhat|best|top|vs|hoac)/.test(lower)) {
       return 'commercial';
     }
     return 'info';
@@ -170,22 +152,22 @@ export class OutlineService {
     } catch (err) {
       throw new Error(`Outline is not valid JSON: ${(err as Error).message}`);
     }
+
     const validation = outlineSchema.safeParse(parsed);
     if (!validation.success) {
       throw new Error(
-        `Outline shape invalid: ${validation.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+        `Outline shape invalid: ${validation.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`,
       );
     }
     return validation.data;
   }
 
   private stripCodeFences(value: string): string {
-    let v = value.trim();
-    if (v.startsWith('```')) {
-      // ```json\n...\n```  or  ```\n...\n```
-      v = v.replace(/^```(?:json|JSON)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+    let cleaned = value.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/, '').replace(/\n?```\s*$/, '');
     }
-    return v.trim();
+    return cleaned.trim();
   }
 
   private cacheKey(opts: {
@@ -199,5 +181,17 @@ export class OutlineService {
     return (
       OutlineService.CACHE_PREFIX + createHash('sha256').update(raw).digest('hex').slice(0, 32)
     );
+  }
+
+  private fitMetaTitle(keyword: string, h1: string): string {
+    const base = `${keyword} | ${h1}`.replace(/\s+/g, ' ').trim();
+    return base.length <= 70 ? base : `${base.slice(0, 67).trimEnd()}...`;
+  }
+
+  private fitMetaDescription(keyword: string, h1: string): string {
+    const base = `${keyword} - ${h1}. Xem outline gon, dung intent va san sang viet bai chuan SEO.`;
+    if (base.length >= 120 && base.length <= 165) return base;
+    if (base.length > 165) return `${base.slice(0, 162).trimEnd()}...`;
+    return `${base} Co mo bai, than bai, ket bai va CTA ro rang cho nguoi viet trien khai ngay.`;
   }
 }

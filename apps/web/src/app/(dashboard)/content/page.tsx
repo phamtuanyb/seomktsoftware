@@ -25,38 +25,42 @@ export default function ContentPage() {
       .list()
       .then((items) => {
         setBrandVoices(items);
-        const def = items.find((b) => b.is_default);
-        if (def) setSelectedBv(def.id);
+        const defaultBrandVoice = items.find((item) => item.is_default);
+        if (defaultBrandVoice) setSelectedBv(defaultBrandVoice.id);
       })
       .catch(() => {
-        // Empty list is fine.
+        setBrandVoices([]);
       });
   }, []);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sinh nội dung AI</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Sinh noi dung AI</h1>
         <p className="text-sm text-muted-foreground">
-          Section 8 TN3 + TN4 — outline + viết bài full + streaming SSE. Stub mode đến khi paste
-          ANTHROPIC_API_KEY thật.
+          Outline gon de duyet truoc, sau do viet bai hoan chinh theo brand voice va provider AI
+          dang cau hinh.
         </p>
       </div>
 
       {brandVoices.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Brand voice (TN5)</CardTitle>
+            <CardTitle className="text-base">Brand voice</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="max-w-md space-y-2">
-              <Label htmlFor="bv">Chọn brand voice cho bài viết</Label>
-              <Select id="bv" value={selectedBv} onChange={(e) => setSelectedBv(e.target.value)}>
-                <option value="">— Không dùng brand voice —</option>
-                {brandVoices.map((bv) => (
-                  <option key={bv.id} value={bv.id}>
-                    {bv.name}
-                    {bv.is_default ? ' (mặc định)' : ''} · {bv.sample_count} sample
+              <Label htmlFor="brand-voice">Chon brand voice cho bai viet</Label>
+              <Select
+                id="brand-voice"
+                value={selectedBv}
+                onChange={(event) => setSelectedBv(event.target.value)}
+              >
+                <option value="">— Khong dung brand voice —</option>
+                {brandVoices.map((brandVoice) => (
+                  <option key={brandVoice.id} value={brandVoice.id}>
+                    {brandVoice.name}
+                    {brandVoice.is_default ? ' (mac dinh)' : ''} · {brandVoice.sample_count} sample
                   </option>
                 ))}
               </Select>
@@ -66,8 +70,8 @@ export default function ContentPage() {
       )}
 
       <OutlineForm
-        onGenerated={(o) => {
-          setOutline(o);
+        onGenerated={(generatedOutline) => {
+          setOutline(generatedOutline);
           setArticle(null);
         }}
       />

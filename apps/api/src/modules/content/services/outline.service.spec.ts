@@ -20,13 +20,13 @@ function makeRedis(): RedisService {
 }
 
 function makeSerp(keyword: string): SerpService {
-  const results: SerpResult[] = [1, 2, 3, 4, 5].map((i) => ({
-    url: `https://fake.local/${i}`,
-    title: `Bài ${i} về ${keyword}`,
+  const results: SerpResult[] = [1, 2, 3, 4, 5].map((index) => ({
+    url: `https://fake.local/${index}`,
+    title: `Bai ${index} ve ${keyword}`,
     snippet: 'snippet',
     headings: {
-      h1: `H1 ${i} ${keyword}`,
-      h2: [`Section A ${i}`, `Section B ${i}`, `Section C ${i}`],
+      h1: `H1 ${index} ${keyword}`,
+      h2: [`Section A ${index}`, `Section B ${index}`, `Section C ${index}`],
       h3: ['Sub 1', 'Sub 2'],
     },
     wordCount: 2000,
@@ -61,7 +61,7 @@ function makeStubProvider(content: string): LlmProvider {
   };
 }
 
-describe('OutlineService — happy path', () => {
+describe('OutlineService', () => {
   it('returns a validated outline with metadata for the given keyword', async () => {
     const keyword = 'SEO local';
     const provider = makeStubProvider(stubOutlineFor(keyword));
@@ -69,17 +69,19 @@ describe('OutlineService — happy path', () => {
 
     const out = await service.generate({ keyword });
 
+    expect(out.meta_title.toLowerCase()).toContain('seo local');
+    expect(out.meta_description.toLowerCase()).toContain('seo local');
     expect(out.h1.toLowerCase()).toContain('seo local');
     expect(out.sections.length).toBeGreaterThanOrEqual(3);
     expect(out.metadata.is_stub).toBe(true);
     expect(out.metadata.based_on_serps).toHaveLength(5);
-    expect(out.metadata.intent).toBe('info'); // inferred default
+    expect(out.metadata.intent).toBe('info');
     expect(out.metadata.format).toBe('blog');
     expect(out.metadata.target_word_count).toBe(2000);
   });
 
   it('detects transactional intent for purchase-style keywords', async () => {
-    const keyword = 'mua phần mềm SEO giá rẻ';
+    const keyword = 'mua phan mem SEO gia re';
     const provider = makeStubProvider(stubOutlineFor(keyword));
     const service = new OutlineService(makeRedis(), makeSerp(keyword), makeRegistry(provider));
 
@@ -88,7 +90,7 @@ describe('OutlineService — happy path', () => {
   });
 
   it('detects commercial intent for review-style keywords', async () => {
-    const keyword = 'so sánh Ahrefs vs Semrush tốt nhất';
+    const keyword = 'so sanh Ahrefs vs Semrush tot nhat';
     const provider = makeStubProvider(stubOutlineFor(keyword));
     const service = new OutlineService(makeRedis(), makeSerp(keyword), makeRegistry(provider));
 
@@ -96,7 +98,7 @@ describe('OutlineService — happy path', () => {
     expect(out.metadata.intent).toBe('commercial');
   });
 
-  it('returns the cached result on second call (no provider re-hit)', async () => {
+  it('returns the cached result on second call', async () => {
     const keyword = 'content marketing';
     const provider = makeStubProvider(stubOutlineFor(keyword));
     const spy = jest.spyOn(provider, 'generate');
@@ -111,8 +113,8 @@ describe('OutlineService — happy path', () => {
   });
 
   it('strips markdown code fences before parsing', async () => {
-    const keyword = 'làm seo';
-    const wrapped = '```json\n' + stubOutlineFor(keyword) + '\n```';
+    const keyword = 'lam seo';
+    const wrapped = `\`\`\`json\n${stubOutlineFor(keyword)}\n\`\`\``;
     const provider = makeStubProvider(wrapped);
     const service = new OutlineService(makeRedis(), makeSerp(keyword), makeRegistry(provider));
 
@@ -120,14 +122,17 @@ describe('OutlineService — happy path', () => {
     expect(out.sections.length).toBeGreaterThan(0);
   });
 
-  it('patches H1 to include the keyword when the model forgets it', async () => {
-    const keyword = 'một keyword cụ thể';
+  it('patches missing keyword into h1 and metadata', async () => {
+    const keyword = 'mot keyword cu the';
     const wrong = {
-      h1: 'Tiêu đề không liên quan',
+      meta_title: 'Tieu de khong lien quan',
+      meta_description:
+        'Mo ta khong lien quan va cung khong chua keyword nen service can tu sua lai de tranh outline bi thieu metadata can thiet cho bai viet SEO hoan chinh.',
+      h1: 'Tieu de khong lien quan',
       sections: [
         {
-          h2: 'Section một',
-          subsections: [{ h3: 'Sub một', bullets: ['bullet một'] }],
+          h2: 'Section mot',
+          subsections: [{ h3: 'Sub mot', bullets: ['bullet mot'] }],
         },
         {
           h2: 'Section hai',
@@ -143,11 +148,11 @@ describe('OutlineService — happy path', () => {
     const service = new OutlineService(makeRedis(), makeSerp(keyword), makeRegistry(provider));
 
     const out = await service.generate({ keyword });
-    expect(out.h1.toLowerCase()).toContain('một keyword cụ thể');
+    expect(out.meta_title.toLowerCase()).toContain('keyword');
+    expect(out.meta_description.toLowerCase()).toContain('keyword');
+    expect(out.h1.toLowerCase()).toContain(keyword);
   });
-});
 
-describe('OutlineService — error paths', () => {
   it('throws AI_PROVIDER_ERROR after 2 failed JSON parses', async () => {
     const provider = makeStubProvider('not valid json at all');
     const service = new OutlineService(
@@ -164,7 +169,12 @@ describe('OutlineService — error paths', () => {
   });
 
   it('rejects outlines that fail Zod shape validation', async () => {
-    const broken = JSON.stringify({ h1: 'short', sections: [] }); // 0 sections < min 3
+    const broken = JSON.stringify({
+      meta_title: 'short',
+      meta_description: 'too short',
+      h1: 'short',
+      sections: [],
+    });
     const provider = makeStubProvider(broken);
     const service = new OutlineService(makeRedis(), makeSerp('broken'), makeRegistry(provider));
 

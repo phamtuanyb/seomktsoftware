@@ -30,22 +30,22 @@ const INTENT_HINTS: Record<OutlineIntent, string> = {
 
 export function buildOutlineSystemPrompt(language: string): string {
   const langName = language === 'en' ? 'English' : 'Vietnamese';
-  return `Ban la senior SEO content strategist cho thi truong Viet Nam. Nhiem vu cua ban la phan tich top SERP va tao outline moi tot hon doi thu: dung intent hon, co angle ro hon, day du hon, nhung khong copy.
+  return `Ban la senior SEO content strategist cho thi truong Viet Nam. Nhiem vu cua ban la phan tich top SERP va tao outline gon, dung intent, de writer co the viet ngay, nhung khong copy doi thu.
 
 NGON NGU:
 - Luon viet outline bang ${langName}.
 
 TRIET LY TAO OUTLINE:
-1. Outline la kien truc trai nghiem doc, khong phai danh sach H2 roi rac.
-2. Moi H2 phai la mot nac thang logic dan nguoi doc tu van de den quyet dinh/hanh dong.
-3. Outline can co angle rieng de vuot SERP, vi du: goc nhin SME Viet Nam, chi phi thuc te, quy trinh trien khai, loi thuong gap, checklist lua chon.
-4. Phai doc SERP de tim gap: muc nao doi thu noi mong, cau hoi nao chua tra loi, thieu bang chung nao, thieu next step nao.
-5. Khong copy tieu de SERP. Co the hoc y dinh noi dung, nhung viet heading moi va tot hon.
+1. Outline la bo khung bai viet hoan chinh, khong tao qua nhieu heading.
+2. Moi H2 phai co vai tro ro: mo bai, giai thich, trien khai, ra quyet dinh, ket luan.
+3. Uu tien cach dien dat gon, de doc, sat phong cach marketing thuc chien.
+4. Neu co du lieu brand voice hoac bai mau tu he thong, hay noi theo nhip viet va cach dat van de do.
+5. Khong copy heading cua SERP. Chi hoc y dinh tim kiem va cac gap can bo sung.
 
 OUTPUT BAT BUOC:
 - Chi tra ve JSON thuan parse duoc bang JSON.parse().
 - Khong markdown, khong code fence, khong giai thich truoc/sau JSON.
-- JSON chi gom dung 2 field: "h1" va "sections".
+- JSON chi gom dung 4 field: "meta_title", "meta_description", "h1", "sections".
 - Moi section co "h2" va "subsections"; moi subsection co "h3" va "bullets".
 - Khong them field ngoai schema nhu metadata, angle, score, notes.`;
 }
@@ -55,7 +55,7 @@ export function buildOutlineUserPrompt(args: BuildOutlinePromptArgs): string {
   const serpBlock = renderSerpBlock(serpResults);
   const countHint = buildCountHint(targetWordCount);
 
-  return `Phan tich top ${serpResults.length} SERP cho keyword "${keyword}", tim gap cua doi thu, roi tao outline moi tot hon.
+  return `Phan tich top ${serpResults.length} SERP cho keyword "${keyword}", tim gap cua doi thu, roi tao outline gon hon va de trien khai hon.
 
 KEYWORD CHINH:
 ${keyword}
@@ -73,18 +73,26 @@ TOP SERP CAN PHAN TICH:
 ${serpBlock}
 
 YEU CAU OUTLINE:
-1. H1 bat buoc chua keyword "${keyword}", hap dan click, khong qua 300 ky tu.
-2. Tao ${countHint} H2 chinh. Moi H2 phai co vai tro rieng trong hanh trinh doc.
-3. Moi H2 co 2-4 H3. Moi H3 co 2-5 bullet cu the de writer co the viet sau.
-4. Phai co goc nhin moi so voi SERP: them vi du Viet Nam, tieu chi lua chon, loi thuong gap, checklist, quy trinh hoac bang so sanh neu phu hop.
-5. Neu intent la commercial/transactional, can co section ve tieu chi lua chon, bang chung, rui ro/trade-off va CTA.
-6. Neu format la comparison/review, can co H2 ve bang so sanh hoac tieu chi danh gia.
-7. Neu format la how-to/listicle, heading can co thu tu/buoc ro rang.
-8. Nen co FAQ gan cuoi neu keyword co nhieu cau hoi lien quan.
-9. Khong copy nguyen van heading cua SERP.
+1. Meta Title dai 50-70 ky tu, keyword chinh o nua dau title, uu tien CTR.
+2. Meta Description dai 140-165 ky tu, co keyword chinh va CTA nhe.
+3. H1 bat buoc chua keyword "${keyword}", ro nghia, hap dan, khong qua 300 ky tu.
+4. Tao ${countHint} H2 chinh la du. Khong mo rong them heading phu neu khong can thiet.
+5. Moi H2 co 1-3 H3. Moi H3 co 2-4 bullet cu the de writer viet thanh doan van that.
+6. Cau truc tong the:
+   - Mo bai: hook + 5W1H + keyword chinh trong 100 chu dau
+   - Than bai: kim tu thap nguoc, y quan trong dat truoc, co chen keyword chinh va key phu tu nhien
+   - Ket bai: tom tat, nhac lai keyword, CTA ro rang
+7. Neu format la comparison/review, phai co H2 ve tieu chi danh gia hoac bang so sanh.
+8. Neu format la how-to/listicle, phai the hien trinh tu buoc hoac thu tu ro rang.
+9. Neu intent la commercial/transactional, phai co phan tieu chi lua chon, bang chung, trade-off va CTA.
+10. Co the dua FAQ vao cuoi bai, nhung chi khi that su can; khong bat buoc moi bai phai co.
+11. Can the hien su lien ket voi phong cach MKT va brand voice neu co, nhung van uu tien do ro rang cua outline.
+12. Khong copy nguyen van heading cua SERP.
 
 SCHEMA JSON BAT BUOC:
 {
+  "meta_title": "string",
+  "meta_description": "string",
   "h1": "string",
   "sections": [
     {
@@ -131,7 +139,7 @@ ${h3List || '  - Khong co du lieu H3'}`;
 }
 
 function buildCountHint(targetWordCount: number): string {
-  if (targetWordCount <= 1200) return '4-6';
-  if (targetWordCount <= 2200) return '6-9';
-  return '8-12';
+  if (targetWordCount <= 1500) return '3-4';
+  if (targetWordCount <= 2500) return '4-5';
+  return '5-6';
 }

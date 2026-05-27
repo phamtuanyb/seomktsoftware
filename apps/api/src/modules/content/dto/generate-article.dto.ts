@@ -48,6 +48,20 @@ class OutlineSectionDto {
 }
 
 class OutlineDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  @MaxLength(70)
+  meta_title?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(120)
+  @MaxLength(165)
+  meta_description?: string;
+
   @ApiProperty()
   @IsString()
   @MinLength(5)
@@ -58,7 +72,7 @@ class OutlineDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OutlineSectionDto)
-  @ArrayMaxSize(12)
+  @ArrayMaxSize(6)
   sections!: OutlineSectionDto[];
 }
 

@@ -12,12 +12,14 @@ export const outlineSubsectionSchema = z.object({
 
 export const outlineSectionSchema = z.object({
   h2: z.string().min(2).max(200),
-  subsections: z.array(outlineSubsectionSchema).min(1).max(6),
+  subsections: z.array(outlineSubsectionSchema).min(1).max(4),
 });
 
 export const outlineSchema = z.object({
+  meta_title: z.string().min(10).max(70),
+  meta_description: z.string().min(120).max(165),
   h1: z.string().min(5).max(300),
-  sections: z.array(outlineSectionSchema).min(3).max(12),
+  sections: z.array(outlineSectionSchema).min(3).max(6),
 });
 
 export type OutlineSubsection = z.infer<typeof outlineSubsectionSchema>;
@@ -25,6 +27,8 @@ export type OutlineSection = z.infer<typeof outlineSectionSchema>;
 export type Outline = z.infer<typeof outlineSchema>;
 
 export interface OutlineWithMetadata {
+  meta_title: Outline['meta_title'];
+  meta_description: Outline['meta_description'];
   h1: Outline['h1'];
   sections: Outline['sections'];
   metadata: {
