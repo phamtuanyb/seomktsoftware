@@ -397,7 +397,7 @@ export default function ArticleDetailPage() {
           <Button variant="ghost" size="sm" onClick={() => router.push('/articles')}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
           </Button>
-          <h1 className="mt-1 text-xl font-bold tracking-tight">Sửa bài viết</h1>
+          <h1 className="mt-1 text-xl font-bold tracking-tight">Bài viết hoàn thiện</h1>
           <p className="text-xs text-muted-foreground">
             <ScoreBadge saved={article.content_score} live={liveScore} scoring={liveScoring} /> ·{' '}
             {article.word_count} từ · {article.ai_model}
@@ -452,14 +452,11 @@ export default function ArticleDetailPage() {
           </CardContent>
         </Card>
 
-        {/* MIDDLE: Editor */}
+        {/* MIDDLE: Article */}
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Nội dung</CardTitle>
-              <CardDescription className="text-xs">
-                Markdown là nguồn chính — HTML + word_count tự cập nhật khi lưu. Auto-save mỗi 30s.
-              </CardDescription>
+              <CardTitle className="text-sm">Nội dung bài viết</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Input
@@ -469,18 +466,21 @@ export default function ArticleDetailPage() {
                 className="text-lg font-medium"
                 placeholder="Tiêu đề bài viết"
               />
-              <Textarea
-                ref={textareaRef}
-                rows={26}
-                value={markdown}
-                onChange={(e) => setMarkdown(e.target.value)}
-                className="font-mono text-sm leading-[22px]"
-                placeholder="# Tiêu đề&#10;&#10;## Section đầu tiên&#10;&#10;Nội dung..."
-              />
               <article
                 className="prose prose-zinc max-w-none rounded-md border bg-background px-6 py-5 prose-headings:scroll-mt-20 prose-headings:font-semibold prose-h1:border-b prose-h1:pb-3 prose-h1:text-3xl prose-h2:mt-8 prose-h2:border-b prose-h2:pb-2 prose-h2:text-2xl prose-h3:mt-6 prose-h3:text-xl prose-p:leading-7 prose-li:my-1 prose-table:text-sm"
                 dangerouslySetInnerHTML={{ __html: article.content_html }}
               />
+              <details className="rounded-md border bg-muted/30 p-3">
+                <summary className="cursor-pointer text-sm font-medium">Sửa Markdown</summary>
+                <Textarea
+                  ref={textareaRef}
+                  rows={26}
+                  value={markdown}
+                  onChange={(e) => setMarkdown(e.target.value)}
+                  className="mt-3 font-mono text-sm leading-[22px]"
+                  placeholder="# Tiêu đề&#10;&#10;## Section đầu tiên&#10;&#10;Nội dung..."
+                />
+              </details>
             </CardContent>
           </Card>
 
