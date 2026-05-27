@@ -10,6 +10,7 @@ import {
   type LlmStreamEvent,
 } from './llm-provider.interface';
 import { stubArticleFor, stubOutlineFor, stubRewriteFor } from './stub-fixtures';
+import { AiSettingsService } from '../../admin/ai-settings.service';
 
 /**
  * Anthropic Claude provider — TN3 outline + TN4 article (streaming).
@@ -28,8 +29,11 @@ export class ClaudeProvider implements LlmProvider {
   readonly name = 'claude';
 
   private readonly logger = new Logger(ClaudeProvider.name);
-  private readonly client: Anthropic | null;
-  readonly available: boolean;
+  private readonly envKey: string;
+
+  get available(): boolean {
+    return this.settings.hasConfiguredKey('claude');
+  }
 
   /** Per-1M-token cost lookup (USD). */
   private static readonly PRICING: Record<string, { input: number; output: number }> = {
@@ -37,11 +41,12 @@ export class ClaudeProvider implements LlmProvider {
     'claude-haiku-4-5-20251001': { input: 0.8, output: 4 },
   };
 
-  constructor(cfg: ConfigService) {
-    const key = cfg.get<string>('ai.anthropicApiKey') ?? process.env.ANTHROPIC_API_KEY;
-    this.available = !isPlaceholderKey(key);
-    this.client = this.available ? new Anthropic({ apiKey: key }) : null;
-    if (!this.available) {
+  constructor(
+    cfg: ConfigService,
+    private readonly settings: AiSettingsService,
+  ) {
+    this.envKey = cfg.get<string>('ai.anthropicApiKey') ?? process.env.ANTHROPIC_API_KEY ?? '';
+    if (isPlaceholderKey(this.envKey)) {
       this.logger.warn(
         'ClaudeProvider running in STUB mode — ANTHROPIC_API_KEY is missing or placeholder',
       );
@@ -51,12 +56,14 @@ export class ClaudeProvider implements LlmProvider {
   async generate(opts: LlmGenerateOptions): Promise<LlmGenerateResult> {
     const { apiModel } = resolveModel(opts.model);
 
-    if (!this.client || !this.available) {
+    const key = await this.settings.getApiKey('claude');
+    if (!key) {
       return this.stubGenerate(opts, apiModel);
     }
 
     try {
-      const response = await this.client.messages.create({
+      const client = new Anthropic({ apiKey: key });
+      const response = await client.messages.create({
         model: apiModel,
         max_tokens: opts.maxTokens ?? 4096,
         temperature: opts.temperature ?? 0.7,
@@ -91,13 +98,15 @@ export class ClaudeProvider implements LlmProvider {
   async *generateStream(opts: LlmGenerateOptions): AsyncIterable<LlmStreamEvent> {
     const { apiModel } = resolveModel(opts.model);
 
-    if (!this.client || !this.available) {
+    const key = await this.settings.getApiKey('claude');
+    if (!key) {
       yield* this.stubStream(opts, apiModel);
       return;
     }
 
     try {
-      const stream = this.client.messages.stream({
+      const client = new Anthropic({ apiKey: key });
+      const stream = client.messages.stream({
         model: apiModel,
         max_tokens: opts.maxTokens ?? 8192,
         temperature: opts.temperature ?? 0.8,
@@ -131,6 +140,7 @@ export class ClaudeProvider implements LlmProvider {
           input: final.usage.input_tokens || inputTokens,
           output: final.usage.output_tokens || outputTokens,
         }),
+        isStub: false,
       };
     } catch (err) {
       this.logger.warn(
@@ -201,6 +211,7 @@ export class ClaudeProvider implements LlmProvider {
       reason: 'end_turn',
       tokensUsed: result.tokensUsed,
       costUsd: 0,
+      isStub: true,
     };
   }
 

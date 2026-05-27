@@ -5,20 +5,55 @@ import Link from 'next/link';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { adminApi, type AdminStats } from '@/lib/api/admin';
+import { Input } from '@/components/ui/input';
+import { adminApi, type AdminStats, type AiProviderName, type AiSettings } from '@/lib/api/admin';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [savingAi, setSavingAi] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState<string | null>(null);
+  const [defaultProvider, setDefaultProvider] = useState<AiProviderName>('claude');
+  const [claudeKey, setClaudeKey] = useState('');
+  const [openaiKey, setOpenaiKey] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
 
   useEffect(() => {
-    adminApi
-      .stats()
-      .then(setStats)
+    Promise.all([adminApi.stats(), adminApi.getAiSettings()])
+      .then(([statsRes, aiRes]) => {
+        setStats(statsRes);
+        setAiSettings(aiRes);
+        setDefaultProvider(aiRes.default_provider);
+      })
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function saveAiSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingAi(true);
+    setError(null);
+    setAiSuccess(null);
+    try {
+      const updated = await adminApi.updateAiSettings({
+        default_provider: defaultProvider,
+        claude_api_key: claudeKey.trim() || undefined,
+        openai_api_key: openaiKey.trim() || undefined,
+        gemini_api_key: geminiKey.trim() || undefined,
+      });
+      setAiSettings(updated);
+      setClaudeKey('');
+      setOpenaiKey('');
+      setGeminiKey('');
+      setAiSuccess('Đã lưu cấu hình AI cho TN viết bài.');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSavingAi(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -73,6 +108,56 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Cấu hình AI viết bài</CardTitle>
+          <CardDescription>
+            Chọn provider mặc định cho TN outline/viết bài. API key được mã hoá trong database.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={saveAiSettings} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <label htmlFor="ai-provider" className="text-sm font-medium">
+                  Provider mặc định
+                </label>
+                <select
+                  id="ai-provider"
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                  value={defaultProvider}
+                  onChange={(e) => setDefaultProvider(e.target.value as AiProviderName)}
+                >
+                  <option value="claude">Claude</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="gemini">Gemini</option>
+                </select>
+              </div>
+              <ProviderStatus label="Claude" status={aiSettings?.providers.claude} />
+              <ProviderStatus label="OpenAI" status={aiSettings?.providers.openai} />
+              <ProviderStatus label="Gemini" status={aiSettings?.providers.gemini} />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <SecretInput label="Claude API key" value={claudeKey} onChange={setClaudeKey} />
+              <SecretInput label="OpenAI API key" value={openaiKey} onChange={setOpenaiKey} />
+              <SecretInput label="Gemini API key" value={geminiKey} onChange={setGeminiKey} />
+            </div>
+
+            {aiSuccess && <p className="text-sm text-emerald-700">{aiSuccess}</p>}
+            <Button type="submit" disabled={savingAi}>
+              {savingAi ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang lưu...
+                </>
+              ) : (
+                'Lưu cấu hình AI'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Phân bố plan</CardTitle>
           <CardDescription>Active subscription / số user. Section 10.</CardDescription>
         </CardHeader>
@@ -99,6 +184,46 @@ export default function AdminDashboardPage() {
           </ul>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function SecretInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">{label}</label>
+      <Input
+        type="password"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Dán key mới, để trống nếu giữ nguyên"
+        autoComplete="off"
+      />
+    </div>
+  );
+}
+
+function ProviderStatus({
+  label,
+  status,
+}: {
+  label: string;
+  status?: { configured: boolean; source: 'admin' | 'env' | 'missing' };
+}) {
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <p className="font-medium">{label}</p>
+      <p className={status?.configured ? 'text-emerald-700' : 'text-amber-700'}>
+        {status?.configured ? `Đã cấu hình (${status.source})` : 'Chưa có key'}
+      </p>
     </div>
   );
 }

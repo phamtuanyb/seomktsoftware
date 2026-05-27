@@ -54,6 +54,14 @@ export interface AdminStats {
   publish_jobs: { total: number; succeeded: number; failed: number; pending: number };
 }
 
+export type AiProviderName = 'claude' | 'openai' | 'gemini';
+
+export interface AiSettings {
+  default_provider: AiProviderName;
+  providers: Record<AiProviderName, { configured: boolean; source: 'admin' | 'env' | 'missing' }>;
+  updated_at: string | null;
+}
+
 export interface ListUsersResponse {
   items: AdminUserListItem[];
   cursor: string | null;
@@ -62,6 +70,13 @@ export interface ListUsersResponse {
 
 export const adminApi = {
   stats: () => api.get<AdminStats>('/admin/stats'),
+  getAiSettings: () => api.get<AiSettings>('/admin/ai-settings'),
+  updateAiSettings: (body: Partial<{
+    default_provider: AiProviderName;
+    claude_api_key: string;
+    openai_api_key: string;
+    gemini_api_key: string;
+  }>) => api.patch<AiSettings>('/admin/ai-settings', body),
 
   listUsers: (query?: {
     cursor?: string;

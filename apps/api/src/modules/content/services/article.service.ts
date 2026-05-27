@@ -368,7 +368,7 @@ export class ArticleService {
           keyword_count: processed.keyword_count,
           keyword_density: processed.keyword_density,
           enable_schema_markup: enableSchemaMarkup,
-          is_stub: !provider.available,
+          is_stub: finishMeta.isStub ?? !provider.available,
           audit_prioritized: auditReport.prioritized,
         },
       },
@@ -392,7 +392,7 @@ export class ArticleService {
       meta_description: processed.meta_description,
       ai_model: provider.name,
       cost_usd: finishMeta.costUsd,
-      is_stub: !provider.available,
+      is_stub: finishMeta.isStub ?? !provider.available,
     };
   }
 

@@ -18,6 +18,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminService } from './admin.service';
+import { AiSettingsService } from './ai-settings.service';
+import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
 import {
   ListUsersQueryDto,
   OverrideQuotaDto,
@@ -32,7 +34,10 @@ import {
 @Roles('admin')
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly aiSettings: AiSettingsService,
+  ) {}
 
   @Get('stats')
   @ApiOperation({
@@ -104,5 +109,17 @@ export class AdminController {
       ip,
       ua: req.headers['user-agent'],
     });
+  }
+
+  @Get('ai-settings')
+  @ApiOperation({ summary: 'Get global AI provider/key status for TN writing.' })
+  getAiSettings() {
+    return this.aiSettings.getSettings();
+  }
+
+  @Patch('ai-settings')
+  @ApiOperation({ summary: 'Update global AI provider and encrypted API keys.' })
+  updateAiSettings(@Body() dto: UpdateAiSettingsDto, @CurrentUser('id') adminId: string) {
+    return this.aiSettings.updateSettings(adminId, dto);
   }
 }

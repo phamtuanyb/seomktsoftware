@@ -12,6 +12,7 @@ import {
 import { EventBusService } from './services/event-bus.service';
 import { QuotaService } from './services/quota.service';
 import { CryptoService } from './services/crypto.service';
+import { AiSettingsService } from '../modules/admin/ai-settings.service';
 
 /**
  * Global infra services shared by every feature module:
@@ -41,6 +42,7 @@ import { CryptoService } from './services/crypto.service';
     EventBusService,
     QuotaService,
     CryptoService,
+    AiSettingsService,
   ],
   exports: [
     PrismaService,
@@ -51,6 +53,7 @@ import { CryptoService } from './services/crypto.service';
     EventBusService,
     QuotaService,
     CryptoService,
+    AiSettingsService,
   ],
 })
 export class CommonModule {}

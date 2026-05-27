@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ClaudeProvider } from '../content/providers/claude.provider';
+import { GeminiProvider } from '../content/providers/gemini.provider';
 import { OpenAiProvider } from '../content/providers/openai.provider';
 import { LlmRegistry } from '../content/providers/llm-registry.service';
 import {
   LLM_PROVIDER_CLAUDE,
+  LLM_PROVIDER_GEMINI,
   LLM_PROVIDER_OPENAI,
 } from '../content/providers/llm-provider.interface';
 
@@ -19,10 +21,20 @@ import {
   providers: [
     ClaudeProvider,
     OpenAiProvider,
+    GeminiProvider,
     { provide: LLM_PROVIDER_CLAUDE, useExisting: ClaudeProvider },
     { provide: LLM_PROVIDER_OPENAI, useExisting: OpenAiProvider },
+    { provide: LLM_PROVIDER_GEMINI, useExisting: GeminiProvider },
     LlmRegistry,
   ],
-  exports: [LlmRegistry, LLM_PROVIDER_CLAUDE, LLM_PROVIDER_OPENAI, ClaudeProvider, OpenAiProvider],
+  exports: [
+    LlmRegistry,
+    LLM_PROVIDER_CLAUDE,
+    LLM_PROVIDER_OPENAI,
+    LLM_PROVIDER_GEMINI,
+    ClaudeProvider,
+    OpenAiProvider,
+    GeminiProvider,
+  ],
 })
 export class LlmModule {}

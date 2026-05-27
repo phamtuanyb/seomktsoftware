@@ -71,7 +71,14 @@ export const ARTICLE_TONES = [
 ] as const;
 export type ArticleTone = (typeof ARTICLE_TONES)[number];
 
-export const ARTICLE_MODELS = ['claude-sonnet-4', 'claude-haiku', 'gpt-4o'] as const;
+export const ARTICLE_MODELS = [
+  'claude-sonnet-4',
+  'claude-haiku',
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+] as const;
 export type ArticleModel = (typeof ARTICLE_MODELS)[number];
 
 /** Section 8 TN4 request body. */

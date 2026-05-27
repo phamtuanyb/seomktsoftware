@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   LLM_PROVIDER_CLAUDE,
+  LLM_PROVIDER_GEMINI,
   LLM_PROVIDER_OPENAI,
   resolveModel,
   type LlmModel,
   type LlmProvider,
 } from './llm-provider.interface';
+import { AiSettingsService } from '../../admin/ai-settings.service';
 
 /**
  * Picks the right provider based on the user-supplied `model`. Section 8 TN4
@@ -16,10 +18,20 @@ export class LlmRegistry {
   constructor(
     @Inject(LLM_PROVIDER_CLAUDE) private readonly claude: LlmProvider,
     @Inject(LLM_PROVIDER_OPENAI) private readonly openai: LlmProvider,
+    @Inject(LLM_PROVIDER_GEMINI) private readonly gemini: LlmProvider,
+    private readonly settings: AiSettingsService,
   ) {}
 
   select(model?: LlmModel): LlmProvider {
+    if (!model) {
+      const provider = this.settings.getCachedDefaultProvider();
+      if (provider === 'openai') return this.openai;
+      if (provider === 'gemini') return this.gemini;
+      return this.claude;
+    }
     const { providerKey } = resolveModel(model);
-    return providerKey === LLM_PROVIDER_OPENAI ? this.openai : this.claude;
+    if (providerKey === LLM_PROVIDER_OPENAI) return this.openai;
+    if (providerKey === LLM_PROVIDER_GEMINI) return this.gemini;
+    return this.claude;
   }
 }

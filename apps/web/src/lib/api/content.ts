@@ -87,7 +87,13 @@ export interface GenerateArticleRequest {
   tone?: 'expert' | 'friendly' | 'sales' | 'educational' | 'storytelling';
   format?: OutlineFormat;
   target_word_count?: number;
-  model?: 'claude-sonnet-4' | 'claude-haiku' | 'gpt-4o';
+  model?:
+    | 'claude-sonnet-4'
+    | 'claude-haiku'
+    | 'gpt-4o'
+    | 'gpt-4o-mini'
+    | 'gemini-1.5-pro'
+    | 'gemini-1.5-flash';
   enable_schema_markup?: boolean;
 }
 

@@ -113,6 +113,18 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model AppSetting {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key            String    @unique @db.VarChar(100)
+  valueJson      Json?     @map("value_json")
+  encryptedValue String?   @map("encrypted_value")
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("app_settings")
+}
+
 // -------------------------------------------------------------------------
 // Keyword Research (TN1, TN2)
 // -------------------------------------------------------------------------

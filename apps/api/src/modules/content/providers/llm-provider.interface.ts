@@ -4,7 +4,14 @@
  * via the `model` parameter, and so test code can inject a stub provider.
  */
 
-export type LlmModel = 'claude-sonnet-4' | 'claude-haiku' | 'gpt-4o' | 'gpt-4o-mini' | 'stub';
+export type LlmModel =
+  | 'claude-sonnet-4'
+  | 'claude-haiku'
+  | 'gpt-4o'
+  | 'gpt-4o-mini'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.5-flash'
+  | 'stub';
 
 export interface LlmGenerateOptions {
   /** System prompt — for Claude, sent as `system`; for OpenAI, role:'system'. */
@@ -39,6 +46,7 @@ export type LlmStreamEvent =
       reason: string;
       tokensUsed: { input: number; output: number };
       costUsd: number;
+      isStub?: boolean;
     };
 
 /** Each provider implements this same contract. */
@@ -62,11 +70,12 @@ export interface LlmProvider {
 
 export const LLM_PROVIDER_CLAUDE = Symbol('LLM_PROVIDER_CLAUDE');
 export const LLM_PROVIDER_OPENAI = Symbol('LLM_PROVIDER_OPENAI');
+export const LLM_PROVIDER_GEMINI = Symbol('LLM_PROVIDER_GEMINI');
 export const LLM_PROVIDER_REGISTRY = Symbol('LLM_PROVIDER_REGISTRY');
 
 /** Maps the spec's `model` string to a provider key + concrete API model. */
 export function resolveModel(model?: LlmModel): {
-  providerKey: typeof LLM_PROVIDER_CLAUDE | typeof LLM_PROVIDER_OPENAI;
+  providerKey: typeof LLM_PROVIDER_CLAUDE | typeof LLM_PROVIDER_OPENAI | typeof LLM_PROVIDER_GEMINI;
   apiModel: string;
 } {
   switch (model) {
@@ -74,6 +83,10 @@ export function resolveModel(model?: LlmModel): {
       return { providerKey: LLM_PROVIDER_OPENAI, apiModel: 'gpt-4o' };
     case 'gpt-4o-mini':
       return { providerKey: LLM_PROVIDER_OPENAI, apiModel: 'gpt-4o-mini' };
+    case 'gemini-1.5-flash':
+      return { providerKey: LLM_PROVIDER_GEMINI, apiModel: 'gemini-1.5-flash' };
+    case 'gemini-1.5-pro':
+      return { providerKey: LLM_PROVIDER_GEMINI, apiModel: 'gemini-1.5-pro' };
     case 'claude-haiku':
       return { providerKey: LLM_PROVIDER_CLAUDE, apiModel: 'claude-haiku-4-5-20251001' };
     case 'claude-sonnet-4':
