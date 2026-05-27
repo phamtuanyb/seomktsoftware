@@ -48,6 +48,7 @@ OUTPUT BAT BUOC:
 - Khong markdown, khong code fence, khong giai thich truoc/sau JSON.
 - JSON chi gom dung 4 field: "meta_title", "meta_description", "h1", "sections".
 - Moi section co "h2" va "subsections"; moi subsection co "h3" va "bullets".
+- Uu tien H2 dung doc. Chi dung H3 khi that su can de tach mot y lon.
 - Khong them field ngoai schema nhu metadata, angle, score, notes.`;
 }
 
@@ -77,19 +78,20 @@ YEU CAU OUTLINE:
 1. Meta Title dai 50-70 ky tu, keyword chinh o nua dau title, uu tien CTR.
 2. Meta Description dai 140-165 ky tu, co keyword chinh va CTA nhe.
 3. H1 bat buoc chua keyword "${keyword}", ro nghia, hap dan, khong qua 300 ky tu.
-4. Tao ${countHint} H2 chinh la du. Khong mo rong them heading phu neu khong can thiet.
-5. Moi H2 chi co 1-2 H3. Moi H3 chi can 2-3 bullet ngan, du y de writer trien khai.
-6. Cau truc tong the:
+4. Tao dung ${countHint} H2 chinh, khong hon. Day la gioi han cung.
+5. Mac dinh moi H2 khong can H3. Chi them toi da 1 H3 neu can tach y quan trong.
+6. Neu co H3 thi chi can 1-2 bullet ngan, khong viet thanh checklist may moc.
+7. Cau truc tong the:
    - Mo bai: hook + 5W1H + keyword chinh trong 100 chu dau
    - Than bai: kim tu thap nguoc, y quan trong dat truoc, co chen keyword chinh va key phu tu nhien
    - Ket bai: tom tat, nhac lai keyword, CTA ro rang
-7. Neu format la comparison/review, phai co H2 ve tieu chi danh gia hoac bang so sanh.
-8. Neu format la how-to/listicle, phai the hien trinh tu buoc hoac thu tu ro rang.
-9. Neu intent la commercial/transactional, phai co phan tieu chi lua chon, bang chung, trade-off va CTA.
-10. Co the dua FAQ vao cuoi bai, nhung chi khi that su can; mac dinh bo qua FAQ de outline gon hon.
-11. Can the hien su lien ket voi phong cach MKT va brand voice neu co, nhung van uu tien do ro rang cua outline.
-12. Khong copy nguyen van heading cua SERP.
-13. Muc tieu la mot outline ngan, de duyet nhanh trong admin, khong phai mot ban draft qua chi tiet.
+8. Neu format la comparison/review, phai co H2 ve tieu chi danh gia hoac bang so sanh.
+9. Neu format la how-to/listicle, phai the hien trinh tu buoc hoac thu tu ro rang.
+10. Neu intent la commercial/transactional, phai co phan tieu chi lua chon, bang chung, trade-off va CTA.
+11. Co the dua FAQ vao cuoi bai, nhung chi khi that su can; mac dinh bo qua FAQ de outline gon hon.
+12. Can the hien su lien ket voi phong cach MKT va brand voice neu co, nhung van uu tien do ro rang cua outline.
+13. Khong copy nguyen van heading cua SERP.
+14. Muc tieu la mot outline ngan, de duyet nhanh trong admin, khong phai mot ban draft qua chi tiet.
 
 SCHEMA JSON BAT BUOC:
 {
@@ -140,7 +142,6 @@ ${h3List || '  - Khong co du lieu H3'}`;
     .join('\n\n');
 }
 
-function buildCountHint(targetWordCount: number): string {
-  if (targetWordCount <= 1800) return '3';
-  return '4';
+function buildCountHint(_targetWordCount: number): string {
+  return '3';
 }

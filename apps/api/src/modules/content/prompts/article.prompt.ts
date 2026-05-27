@@ -55,7 +55,7 @@ NGON NGU:
 OUTPUT BAT BUOC:
 - Tra ve MARKDOWN thuan, khong JSON, khong code fence, khong loi dan.
 - Bat dau truc tiep bang "# H1".
-- Dung dung cau truc H2/H3 theo outline da cung cap, co the them FAQ/CTA neu hop logic.
+- Dung dung cau truc H2/H3 theo outline da cung cap. Khong ep moi H2 phai co H3.
 - Khong tao metadata rieng, khong chen ghi chu noi bo, khong noi "duoi day la".
 
 DNA NOI DUNG:
@@ -98,9 +98,9 @@ YEU CAU THUC THI:
 1. H1 phai chua keyword "${args.keyword}" va giu dung y dinh cua outline.
 2. Intro 120-180 tu: co hook cu the, nhac keyword trong 50 tu dau, noi ro van de nguoi doc dang gap.
 3. Do dai bat buoc: bai viet phai nam trong khoang ${minWords}-${maxWords} tu. Khong duoc dung lai som sau 300-800 tu.
-4. Phan bo do dai: intro 120-180 tu, moi H2 khoang ${sectionBudget} tu, ket bai 120-180 tu. Neu H2 co nhieu H3, chia deu noi dung cho tung H3.
+4. Phan bo do dai: intro 120-180 tu, moi H2 khoang ${sectionBudget} tu, ket bai 120-180 tu. Neu outline khong co H3 thi viet truc tiep theo H2, khong tu y de qua nhieu H3 moi.
 5. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
-6. Moi H3 can tra loi mot y cu the, khong lap lai tieu de.
+6. Neu co H3, moi H3 chi tra loi mot y cu the, khong lap lai tieu de.
 7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA cua brand voice neu co.
 8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
 9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
