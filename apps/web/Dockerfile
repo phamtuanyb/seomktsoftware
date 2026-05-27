@@ -23,6 +23,8 @@ COPY --from=deps /app/packages ./packages
 COPY . .
 
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @mkt-seo/shared build \
  && pnpm --filter @mkt-seo/web build
 
