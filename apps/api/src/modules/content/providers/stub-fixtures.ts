@@ -90,18 +90,6 @@ export const STUB_OUTLINE_JSON = `{
           ]
         }
       ]
-    },
-    {
-      "h2": "Ket luan va buoc hanh dong tiep theo",
-      "subsections": [
-        {
-          "h3": "Tong ket",
-          "bullets": [
-            "Nhac lai keyword va gia tri cot loi",
-            "CTA ro rang de bat dau"
-          ]
-        }
-      ]
     }
   ]
 }`;

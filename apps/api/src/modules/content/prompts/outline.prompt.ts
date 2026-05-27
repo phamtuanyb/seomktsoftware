@@ -41,6 +41,7 @@ TRIET LY TAO OUTLINE:
 3. Uu tien cach dien dat gon, de doc, sat phong cach marketing thuc chien.
 4. Neu co du lieu brand voice hoac bai mau tu he thong, hay noi theo nhip viet va cach dat van de do.
 5. Khong copy heading cua SERP. Chi hoc y dinh tim kiem va cac gap can bo sung.
+6. Uu tien outline ngan. Chi giu lai nhung muc that su can de viet bai.
 
 OUTPUT BAT BUOC:
 - Chi tra ve JSON thuan parse duoc bang JSON.parse().
@@ -77,7 +78,7 @@ YEU CAU OUTLINE:
 2. Meta Description dai 140-165 ky tu, co keyword chinh va CTA nhe.
 3. H1 bat buoc chua keyword "${keyword}", ro nghia, hap dan, khong qua 300 ky tu.
 4. Tao ${countHint} H2 chinh la du. Khong mo rong them heading phu neu khong can thiet.
-5. Moi H2 co 1-3 H3. Moi H3 co 2-4 bullet cu the de writer viet thanh doan van that.
+5. Moi H2 chi co 1-2 H3. Moi H3 chi can 2-3 bullet ngan, du y de writer trien khai.
 6. Cau truc tong the:
    - Mo bai: hook + 5W1H + keyword chinh trong 100 chu dau
    - Than bai: kim tu thap nguoc, y quan trong dat truoc, co chen keyword chinh va key phu tu nhien
@@ -85,9 +86,10 @@ YEU CAU OUTLINE:
 7. Neu format la comparison/review, phai co H2 ve tieu chi danh gia hoac bang so sanh.
 8. Neu format la how-to/listicle, phai the hien trinh tu buoc hoac thu tu ro rang.
 9. Neu intent la commercial/transactional, phai co phan tieu chi lua chon, bang chung, trade-off va CTA.
-10. Co the dua FAQ vao cuoi bai, nhung chi khi that su can; khong bat buoc moi bai phai co.
+10. Co the dua FAQ vao cuoi bai, nhung chi khi that su can; mac dinh bo qua FAQ de outline gon hon.
 11. Can the hien su lien ket voi phong cach MKT va brand voice neu co, nhung van uu tien do ro rang cua outline.
 12. Khong copy nguyen van heading cua SERP.
+13. Muc tieu la mot outline ngan, de duyet nhanh trong admin, khong phai mot ban draft qua chi tiet.
 
 SCHEMA JSON BAT BUOC:
 {
@@ -139,7 +141,6 @@ ${h3List || '  - Khong co du lieu H3'}`;
 }
 
 function buildCountHint(targetWordCount: number): string {
-  if (targetWordCount <= 1500) return '3-4';
-  if (targetWordCount <= 2500) return '4-5';
-  return '5-6';
+  if (targetWordCount <= 1800) return '3';
+  return '4';
 }

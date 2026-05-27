@@ -7,19 +7,19 @@ import { z } from 'zod';
  */
 export const outlineSubsectionSchema = z.object({
   h3: z.string().min(2).max(200),
-  bullets: z.array(z.string().min(2).max(300)).min(1).max(8),
+  bullets: z.array(z.string().min(2).max(300)).min(1).max(3),
 });
 
 export const outlineSectionSchema = z.object({
   h2: z.string().min(2).max(200),
-  subsections: z.array(outlineSubsectionSchema).min(1).max(4),
+  subsections: z.array(outlineSubsectionSchema).min(1).max(2),
 });
 
 export const outlineSchema = z.object({
   meta_title: z.string().min(10).max(70),
   meta_description: z.string().min(120).max(165),
   h1: z.string().min(5).max(300),
-  sections: z.array(outlineSectionSchema).min(3).max(6),
+  sections: z.array(outlineSectionSchema).min(3).max(4),
 });
 
 export type OutlineSubsection = z.infer<typeof outlineSubsectionSchema>;

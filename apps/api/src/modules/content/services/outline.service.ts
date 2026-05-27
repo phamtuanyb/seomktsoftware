@@ -16,7 +16,7 @@ import { buildOutlineSystemPrompt, buildOutlineUserPrompt } from '../prompts/out
 @Injectable()
 export class OutlineService {
   private readonly logger = new Logger(OutlineService.name);
-  private static readonly CACHE_PREFIX = 'outline:';
+  private static readonly CACHE_PREFIX = 'outline:v2:';
   private static readonly CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 
   constructor(
