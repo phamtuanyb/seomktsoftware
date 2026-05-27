@@ -3,11 +3,13 @@ import type { ArticleTone } from '../dto/generate-article.dto';
 import type { OutlineFormat } from '../dto/generate-outline.dto';
 
 export interface BrandVoiceProfileLite {
+  brand_name?: string;
   tone?: { primary?: string; secondary?: string[] };
   sentence_structure?: { avg_words_per_sentence?: number };
-  addressing?: { primary?: string; formality?: string };
+  addressing?: { primary?: string; formality?: string; self_reference?: string };
   signature_phrases?: string[];
-  emoji_usage?: { enabled?: boolean; density?: string; common_emojis?: string[] };
+  vocabulary?: { preferred?: string[]; avoided?: string[] };
+  emoji_usage?: { enabled?: boolean; density?: string | number; common_emojis?: string[] };
   patterns?: { opening_style?: string; closing_style?: string; cta_style?: string };
 }
 
@@ -30,88 +32,138 @@ export interface BuildArticlePromptArgs {
 }
 
 const TONE_HINTS: Record<ArticleTone, string> = {
-  expert: 'chuyên gia, dùng dữ liệu + số liệu, ít cảm xúc, ngôn ngữ trang trọng',
-  friendly: 'thân thiện, gần gũi, dùng "bạn", có chút humor nhẹ',
-  sales: 'thuyết phục, hướng CTA, nhấn mạnh USP, có lời kêu gọi rõ ràng',
-  educational: 'giảng giải, dùng ví dụ minh họa, từng bước rõ ràng',
-  storytelling: 'kể chuyện, có nhân vật + tình huống thật, gợi cảm xúc',
+  expert: 'chuyen gia, co lap luan, uu tien du lieu va trai nghiem thuc te',
+  friendly: 'than thien, gan gui, dung "ban", giai thich ro nhung khong len lop',
+  sales: 'thuyet phuc, nhan manh loi ich, bang chung va CTA ro rang',
+  educational: 'giang giai tung buoc, co vi du, giup nguoi doc tu lam duoc',
+  storytelling: 'ke chuyen co tinh huong, co mau thuan, co bai hoc rut ra',
 };
 
 export function buildArticleSystemPrompt(args: BuildArticlePromptArgs): string {
   const langName = args.language === 'en' ? 'English' : 'Vietnamese';
-  let prompt = `Bạn là một content writer SEO chuyên nghiệp với 10+ năm kinh nghiệm. Bạn viết bài chuẩn SEO mà người đọc vẫn yêu thích — không nhồi keyword, không AI giọng. Bạn LUÔN viết bằng ${langName}.
+  const toneLine = args.tone ? `\nTONE MAC DINH: ${args.tone} - ${TONE_HINTS[args.tone]}` : '';
 
-YÊU CẦU OUTPUT:
-- Trả về MARKDOWN thuần (không JSON wrapper, không code fence ngoài cùng).
-- Cấu trúc: bắt đầu bằng # H1, body chia ## H2 / ### H3 theo outline cung cấp.
-- Bold (**...**) keyword chính 3-5 lần ở các vị trí chiến lược (intro, conclusion, vài H2).
-- LSI keywords (từ liên quan ngữ nghĩa) xuất hiện tự nhiên 10-15 lần.
-- KHÔNG dùng "Bạn có biết...", "Hãy cùng tìm hiểu...", "Trong bài viết này..." (lời mở quá AI-style).
-`;
+  return `Ban la mot content writer SEO cap cao cho thi truong Viet Nam, co 10 nam kinh nghiem viet bai chuyen doi tot. Ban viet nhu nguoi that: co khau vi, co quan diem, co trai nghiem, khong viet van AI chung chung.
 
-  if (args.tone) {
-    prompt += `\nTONE: ${args.tone} — ${TONE_HINTS[args.tone]}\n`;
-  }
+NGON NGU:
+- Luon viet bang ${langName}.
+- Neu viet tieng Viet, uu tien van noi tu nhien cua nguoi Viet, cau ngan va ro.
 
-  if (args.brandVoice) {
-    const bv = args.brandVoice.profile;
-    prompt += `\n===== BRAND VOICE (BẮT BUỘC BẮT CHƯỚC) =====\n`;
-    if (bv.tone?.primary) prompt += `- Tone chính: ${bv.tone.primary}\n`;
-    if (bv.tone?.secondary?.length) prompt += `- Tone phụ: ${bv.tone.secondary.join(', ')}\n`;
-    if (bv.sentence_structure?.avg_words_per_sentence) {
-      prompt += `- Độ dài câu trung bình: ${bv.sentence_structure.avg_words_per_sentence} từ\n`;
-    }
-    if (bv.addressing?.primary) {
-      prompt += `- Xưng hô: ${bv.addressing.primary}${bv.addressing.formality ? ` (${bv.addressing.formality})` : ''}\n`;
-    }
-    if (bv.signature_phrases?.length) {
-      prompt += `- Cụm từ đặc trưng cần dùng (chọn 2-3): ${bv.signature_phrases.slice(0, 8).join(', ')}\n`;
-    }
-    if (bv.emoji_usage?.enabled) {
-      prompt += `- Emoji: dùng nhẹ (${bv.emoji_usage.density ?? 'sparse'}) — ${(bv.emoji_usage.common_emojis ?? []).join(' ')}\n`;
-    }
-    if (bv.patterns?.opening_style) prompt += `- Mở bài: ${bv.patterns.opening_style}\n`;
-    if (bv.patterns?.closing_style) prompt += `- Kết bài: ${bv.patterns.closing_style}\n`;
-    if (bv.patterns?.cta_style) prompt += `- CTA style: ${bv.patterns.cta_style}\n`;
+OUTPUT BAT BUOC:
+- Tra ve MARKDOWN thuan, khong JSON, khong code fence, khong loi dan.
+- Bat dau truc tiep bang "# H1".
+- Dung dung cau truc H2/H3 theo outline da cung cap, co the them FAQ/CTA neu hop logic.
+- Khong tao metadata rieng, khong chen ghi chu noi bo, khong noi "duoi day la".
 
-    if (args.brandVoice.referenceArticles.length) {
-      prompt += `\n===== 3 BÀI MẪU ĐỂ BẮT CHƯỚC PHONG CÁCH =====\n`;
-      args.brandVoice.referenceArticles.slice(0, 3).forEach((a, i) => {
-        const excerpt = a.content.slice(0, 1500);
-        prompt += `\n[Bài ${i + 1}${a.title ? ` — "${a.title}"` : ''}]\n${excerpt}\n`;
-      });
-    }
-  }
+DNA NOI DUNG:
+1. Viet cho nguoi doc tren dien thoai: cau 10-18 tu la chinh, doan 2-4 cau, moi doan khong qua 60 tu.
+2. Di thang vao van de trong 2 cau dau. Tranh mo bai kieu "Ban co biet", "Hay cung tim hieu", "Trong bai viet nay".
+3. Moi 200-300 tu nen co mot chi tiet cu the: con so, moc thoi gian, vi du, cong cu, nhom nguoi dung hoac tinh huong thuc te.
+4. Co quan diem ro, nhung moi quan diem phai co ly do. Neu co trade-off, noi thang.
+5. Khong hua qua da. Neu giai phap chi phu hop voi mot nhom nguoi dung, noi ro nhom do.
+6. SEO tu nhien: keyword chinh xuat hien trong intro, mot vai H2/body va ket luan; khong nhoi tu khoa.
+7. LSI keywords phai duoc cai tu nhien, khong liet ke may moc.
+8. Neu thieu du lieu, dung cum tu can than nhu "thuong", "trong nhieu truong hop", "nen kiem tra lai" thay vi bia so lieu.
 
-  return prompt;
+CHAT LUONG CAN DAT:
+- Doc xong moi H2, nguoi doc phai co them mot quyet dinh hoac mot hanh dong cu the.
+- Bai viet phai vuot outline doi thu bang chieu sau, vi du thuc te va goc nhin rieng.
+- Ket luan khong tom tat dai dong; chot lai insight va CTA cu the.${toneLine}
+${buildBrandVoiceInjection(args.brandVoice)}`;
 }
 
 export function buildArticleUserPrompt(args: BuildArticlePromptArgs): string {
   const outlineMd = renderOutlineAsMarkdown(args.outline);
+  const formatRules = buildFormatRules(args.format);
 
-  return `Viết một bài viết SEO hoàn chỉnh ~${args.targetWordCount} từ theo outline dưới đây.
+  return `Viet mot bai SEO hoan chinh khoang ${args.targetWordCount} tu dua tren outline duoi day.
 
-===== KEYWORD CHÍNH =====
+KEYWORD CHINH:
 ${args.keyword}
 
-===== OUTLINE =====
+FORMAT:
+${args.format}
+
+OUTLINE BAT BUOC BAM THEO:
 ${outlineMd}
 
-===== YÊU CẦU CHI TIẾT =====
-1. **Intro 150 từ đầu**: phải có hook gây tò mò + nhắc keyword "${args.keyword}" trong 50 từ đầu. KHÔNG dùng "Bạn có biết..." / "Hãy cùng...".
-2. **Body theo outline**: viết đủ depth cho mỗi H2 + H3. Mỗi H2 ~250-400 từ.
-3. **FAQ section**: nếu outline có FAQ, viết 5-10 câu hỏi + trả lời 80-150 từ mỗi câu.
-4. **Conclusion + CTA**: ~150 từ cuối kết bài, có lời CTA hành động cụ thể.
-5. **Format-specific**:
-   ${args.format === 'comparison' || args.format === 'review' ? '- Thêm 1 BẢNG MARKDOWN so sánh giữa bài (tối thiểu 3 cột, 4 dòng).' : ''}
-   ${args.format === 'how-to' || args.format === 'listicle' ? '- Numbered steps rõ ràng, có thể dùng `1.` markdown ordered list.' : ''}
-6. **Keyword usage**:
-   - Bold (**${args.keyword}**) keyword chính 3-5 lần (intro, 2 H2, conclusion).
-   - LSI keywords (từ liên quan ngữ nghĩa với "${args.keyword}") xuất hiện 10-15 lần tự nhiên.
-   - KHÔNG nhồi keyword — keyword density ≤ 2%.
-7. **Markdown output only** — bắt đầu trực tiếp với # H1, không có \`\`\` wrap, không có "Đây là bài viết:" lời dẫn.
+YEU CAU THUC THI:
+1. H1 phai chua keyword "${args.keyword}" va giu dung y dinh cua outline.
+2. Intro 120-180 tu: co hook cu the, nhac keyword trong 50 tu dau, noi ro van de nguoi doc dang gap.
+3. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
+4. Moi H3 can tra loi mot y cu the, khong lap lai tieu de.
+5. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
+6. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
+7. Them FAQ neu outline co FAQ hoac neu intent can giai dap cau hoi truoc khi mua/dung.
+8. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
+9. Do dai muc tieu: ${args.targetWordCount} tu, chap nhan lech khoang 15% neu noi dung can tu nhien.
+10. Chi tra ve Markdown thuan, bat dau ngay bang "#".
 
-Bắt đầu viết:`;
+QUY TAC THEO FORMAT:
+${formatRules}
+
+Bat dau viet bai:`;
+}
+
+function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice']): string {
+  if (!brandVoice) return '';
+
+  const bv = brandVoice.profile;
+  const lines: string[] = ['', 'BRAND VOICE BAT BUOC AP DUNG:'];
+  if (bv.brand_name) lines.push(`- Ten brand: ${bv.brand_name}`);
+  if (bv.tone?.primary) lines.push(`- Tone chinh: ${bv.tone.primary}`);
+  if (bv.tone?.secondary?.length) lines.push(`- Tone phu: ${bv.tone.secondary.join(', ')}`);
+  if (bv.sentence_structure?.avg_words_per_sentence) {
+    lines.push(`- Do dai cau trung binh: ${bv.sentence_structure.avg_words_per_sentence} tu`);
+  }
+  if (bv.addressing?.primary) {
+    const formality = bv.addressing.formality ? `, muc do: ${bv.addressing.formality}` : '';
+    lines.push(`- Xung ho voi doc gia: ${bv.addressing.primary}${formality}`);
+  }
+  if (bv.addressing?.self_reference) lines.push(`- Cach tu xung cua brand: ${bv.addressing.self_reference}`);
+  if (bv.signature_phrases?.length) {
+    lines.push(`- Cum tu dac trung nen dung co chon loc: ${bv.signature_phrases.slice(0, 8).join(', ')}`);
+  }
+  if (bv.vocabulary?.preferred?.length) {
+    lines.push(`- Tu/cum tu uu tien: ${bv.vocabulary.preferred.slice(0, 12).join(', ')}`);
+  }
+  if (bv.vocabulary?.avoided?.length) {
+    lines.push(`- Tu/cum tu can tranh: ${bv.vocabulary.avoided.slice(0, 12).join(', ')}`);
+  }
+  if (bv.emoji_usage?.enabled) {
+    const density = bv.emoji_usage.density ?? 'thap';
+    const emojis = bv.emoji_usage.common_emojis?.length ? ` (${bv.emoji_usage.common_emojis.join(' ')})` : '';
+    lines.push(`- Emoji: duoc dung voi mat do ${density}${emojis}`);
+  } else if (bv.emoji_usage?.enabled === false) {
+    lines.push('- Emoji: khong dung emoji');
+  }
+  if (bv.patterns?.opening_style) lines.push(`- Kieu mo bai: ${bv.patterns.opening_style}`);
+  if (bv.patterns?.closing_style) lines.push(`- Kieu ket bai: ${bv.patterns.closing_style}`);
+  if (bv.patterns?.cta_style) lines.push(`- Kieu CTA: ${bv.patterns.cta_style}`);
+
+  if (brandVoice.referenceArticles.length) {
+    lines.push('', 'BAI MAU DE BAT CHUOC PHONG CACH, KHONG COPY NOI DUNG:');
+    brandVoice.referenceArticles.slice(0, 3).forEach((article, index) => {
+      const excerpt = article.content.slice(0, 1800);
+      lines.push(`\n[Mau ${index + 1}${article.title ? ` - ${article.title}` : ''}]\n${excerpt}`);
+    });
+  }
+
+  return `\n${lines.join('\n')}`;
+}
+
+function buildFormatRules(format: OutlineFormat): string {
+  const rules: Record<OutlineFormat, string> = {
+    blog: '- Viet nhu bai blog chuyen sau: giai thich ro, co vi du, co FAQ neu can.',
+    listicle: '- Moi muc listicle nen la mot H2 co so thu tu. Neu xep hang, noi ro tieu chi xep hang.',
+    'how-to': '- Trinh bay theo cac buoc hanh dong. Moi buoc can co dau vao, cach lam va loi thuong gap.',
+    review: '- Can co phan danh gia, uu/nhuoc diem, doi tuong phu hop va verdict cuoi bai.',
+    comparison: '- Can co bang so sanh Markdown va phan ket luan nen chon phuong an nao cho tung truong hop.',
+    faq: '- Moi H2/H3 nen la cau hoi that cua nguoi dung, cau tra loi thang vao van de.',
+    landing: '- Viet theo flow pain -> solution -> proof -> offer -> CTA. Cau chu ngan, thuyet phuc.',
+    product: '- Lam ro doi tuong phu hop, tinh nang chinh, loi ich, bang chung va CTA.',
+  };
+  return rules[format];
 }
 
 function renderOutlineAsMarkdown(outline: Outline): string {
@@ -120,8 +172,8 @@ function renderOutlineAsMarkdown(outline: Outline): string {
     lines.push(`\n## ${section.h2}`);
     for (const sub of section.subsections) {
       lines.push(`### ${sub.h3}`);
-      for (const b of sub.bullets) {
-        lines.push(`- ${b}`);
+      for (const bullet of sub.bullets) {
+        lines.push(`- ${bullet}`);
       }
     }
   }

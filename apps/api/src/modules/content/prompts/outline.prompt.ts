@@ -11,81 +11,127 @@ export interface BuildOutlinePromptArgs {
 }
 
 const FORMAT_HINTS: Record<OutlineFormat, string> = {
-  blog: 'bài viết dạng blog giáo dục, có intro hook + body chia mục + kết luận + CTA',
-  listicle: 'bài listicle có số thứ tự rõ ràng (#1, #2, ...), mỗi mục là 1 H2',
-  'how-to': 'bài hướng dẫn từng bước rõ ràng (Bước 1, Bước 2, ...) kèm checklist',
-  review: 'bài đánh giá có Pros / Cons / Verdict, kèm bảng so sánh',
-  comparison: 'bài so sánh nhiều giải pháp, bắt buộc có bảng so sánh ở giữa bài',
-  faq: 'bài tổng hợp FAQ, mỗi H2 là 1 câu hỏi, trả lời 150-300 từ',
-  landing: 'landing page có hook → vấn đề → giải pháp → bằng chứng → CTA',
-  product: 'trang sản phẩm có mô tả → tính năng → đối tượng → giá → CTA',
+  blog: 'bai blog giao duc, co hook, giai thich sau, vi du va ket luan co CTA',
+  listicle: 'bai danh sach co so thu tu ro rang, moi muc la mot y doc lap',
+  'how-to': 'bai huong dan tung buoc, co checklist, loi thuong gap va cach xu ly',
+  review: 'bai danh gia co tieu chi, uu/nhuoc diem, verdict va doi tuong phu hop',
+  comparison: 'bai so sanh nhieu giai phap, bat buoc co bang/tieu chi so sanh',
+  faq: 'bai hoi dap, moi muc tra loi mot cau hoi that cua nguoi search',
+  landing: 'landing page theo flow pain -> solution -> proof -> CTA',
+  product: 'trang san pham theo flow van de -> tinh nang -> loi ich -> bang chung -> CTA',
 };
 
 const INTENT_HINTS: Record<OutlineIntent, string> = {
-  info: 'người đọc đang tìm hiểu, ưu tiên định nghĩa và giải thích chi tiết',
-  commercial: 'người đọc đang so sánh / nghiên cứu trước khi mua, cần bảng so sánh + bằng chứng',
-  transactional: 'người đọc sẵn sàng mua, ưu tiên USP / giá / CTA rõ ràng',
-  navigational: 'người đọc tìm 1 thương hiệu / sản phẩm cụ thể',
+  info: 'nguoi doc muon hieu ro van de, can dinh nghia, boi canh, vi du va cach lam',
+  commercial: 'nguoi doc dang so sanh truoc khi mua, can tieu chi, bang chung va khuyen nghi',
+  transactional: 'nguoi doc da san sang hanh dong, can loi ich, gia tri, quy trinh va CTA',
+  navigational: 'nguoi doc tim mot thuong hieu/san pham cu the, can thong tin dung va nhanh',
 };
 
 export function buildOutlineSystemPrompt(language: string): string {
   const langName = language === 'en' ? 'English' : 'Vietnamese';
-  return `Bạn là chuyên gia SEO content có 10+ năm kinh nghiệm. Bạn được training để tạo outline bài viết SEO tốt hơn top SERP. Bạn LUÔN trả lời bằng ${langName}.
+  return `Ban la senior SEO content strategist cho thi truong Viet Nam. Nhiem vu cua ban la phan tich top SERP va tao outline moi tot hon doi thu: dung intent hon, co angle ro hon, day du hon, nhung khong copy.
 
-QUAN TRỌNG: Bạn LUÔN trả về JSON thuần (không có \`\`\`json wrapper, không có markdown, không có text giải thích trước/sau JSON). JSON phải parse được bằng JSON.parse() trực tiếp.`;
+NGON NGU:
+- Luon viet outline bang ${langName}.
+
+TRIET LY TAO OUTLINE:
+1. Outline la kien truc trai nghiem doc, khong phai danh sach H2 roi rac.
+2. Moi H2 phai la mot nac thang logic dan nguoi doc tu van de den quyet dinh/hanh dong.
+3. Outline can co angle rieng de vuot SERP, vi du: goc nhin SME Viet Nam, chi phi thuc te, quy trinh trien khai, loi thuong gap, checklist lua chon.
+4. Phai doc SERP de tim gap: muc nao doi thu noi mong, cau hoi nao chua tra loi, thieu bang chung nao, thieu next step nao.
+5. Khong copy tieu de SERP. Co the hoc y dinh noi dung, nhung viet heading moi va tot hon.
+
+OUTPUT BAT BUOC:
+- Chi tra ve JSON thuan parse duoc bang JSON.parse().
+- Khong markdown, khong code fence, khong giai thich truoc/sau JSON.
+- JSON chi gom dung 2 field: "h1" va "sections".
+- Moi section co "h2" va "subsections"; moi subsection co "h3" va "bullets".
+- Khong them field ngoai schema nhu metadata, angle, score, notes.`;
 }
 
 export function buildOutlineUserPrompt(args: BuildOutlinePromptArgs): string {
   const { keyword, intent, format, targetWordCount, language, serpResults } = args;
+  const serpBlock = renderSerpBlock(serpResults);
+  const countHint = buildCountHint(targetWordCount);
 
-  const serpBlock = serpResults
-    .map((r, i) => {
-      const h2List = r.headings.h2
-        .slice(0, 6)
-        .map((h) => `  - ${h}`)
-        .join('\n');
-      return `[${i + 1}] ${r.title}\nURL: ${r.url}\nWord count: ${r.wordCount}\nH1: ${r.headings.h1}\nH2 sections:\n${h2List}`;
-    })
-    .join('\n\n');
+  return `Phan tich top ${serpResults.length} SERP cho keyword "${keyword}", tim gap cua doi thu, roi tao outline moi tot hon.
 
-  return `Phân tích outline của top ${serpResults.length} kết quả SERP cho keyword "${keyword}", rồi tạo 1 outline MỚI tốt hơn — đầy đủ hơn, có góc nhìn riêng, không copy nguyên xi.
-
-===== KEYWORD =====
+KEYWORD CHINH:
 ${keyword}
 
-===== INTENT =====
-${intent} — ${INTENT_HINTS[intent]}
+SEARCH INTENT:
+${intent} - ${INTENT_HINTS[intent]}
 
-===== FORMAT =====
-${format} — ${FORMAT_HINTS[format]}
+FORMAT:
+${format} - ${FORMAT_HINTS[format]}
 
-===== TARGET LENGTH =====
-~${targetWordCount} từ (${language === 'en' ? 'English' : 'tiếng Việt'})
+DO DAI BAI VIET MUC TIEU:
+Khoang ${targetWordCount} tu, ngon ngu ${language === 'en' ? 'English' : 'tieng Viet'}.
 
-===== TOP SERP OUTLINES =====
+TOP SERP CAN PHAN TICH:
 ${serpBlock}
 
-===== YÊU CẦU OUTLINE MỚI =====
-1. H1 BẮT BUỘC chứa keyword "${keyword}" trong 60 ký tự đầu, hấp dẫn click.
-2. 5-8 section H2 (không kể FAQ + Kết luận). Mỗi H2 bao quát 1 góc khác nhau, KHÔNG trùng SERP.
-3. Mỗi H2 có 2-4 subsection H3 cụ thể, mỗi H3 có 2-5 bullet ý chính.
-4. PHẢI có 1 section FAQ với ≥5 câu hỏi dạng H3 (đặt cuối, trước Kết luận).
-5. Outline phải support được bài viết ${targetWordCount} từ — H2 + H3 + bullets đủ chi tiết.
-6. ${format === 'comparison' || format === 'review' ? 'PHẢI có 1 section "Bảng so sánh" hoặc tương đương.' : ''}
-7. ${format === 'how-to' || format === 'listicle' ? 'H2 phải đánh số rõ ràng (Bước 1, Bước 2 hoặc #1, #2, ...).' : ''}
+YEU CAU OUTLINE:
+1. H1 bat buoc chua keyword "${keyword}", hap dan click, khong qua 300 ky tu.
+2. Tao ${countHint} H2 chinh. Moi H2 phai co vai tro rieng trong hanh trinh doc.
+3. Moi H2 co 2-4 H3. Moi H3 co 2-5 bullet cu the de writer co the viet sau.
+4. Phai co goc nhin moi so voi SERP: them vi du Viet Nam, tieu chi lua chon, loi thuong gap, checklist, quy trinh hoac bang so sanh neu phu hop.
+5. Neu intent la commercial/transactional, can co section ve tieu chi lua chon, bang chung, rui ro/trade-off va CTA.
+6. Neu format la comparison/review, can co H2 ve bang so sanh hoac tieu chi danh gia.
+7. Neu format la how-to/listicle, heading can co thu tu/buoc ro rang.
+8. Nen co FAQ gan cuoi neu keyword co nhieu cau hoi lien quan.
+9. Khong copy nguyen van heading cua SERP.
 
-===== JSON SCHEMA OUTPUT =====
+SCHEMA JSON BAT BUOC:
 {
-  "h1": "string (chứa keyword, max 300 ký tự)",
+  "h1": "string",
   "sections": [
     {
       "h2": "string",
       "subsections": [
-        { "h3": "string", "bullets": ["string", "..."] }
+        {
+          "h3": "string",
+          "bullets": ["string"]
+        }
       ]
     }
   ]
 }
 
-Bây giờ trả về JSON thuần (không markdown, không giải thích):`;
+Tra ve JSON thuan ngay bay gio:`;
+}
+
+function renderSerpBlock(serpResults: SerpResult[]): string {
+  if (!serpResults.length) {
+    return 'Khong co SERP data. Hay tu suy luan intent va tao outline co chieu sau.';
+  }
+
+  return serpResults
+    .map((result, index) => {
+      const h2List = result.headings.h2
+        .slice(0, 8)
+        .map((heading) => `  - ${heading}`)
+        .join('\n');
+      const h3List = result.headings.h3
+        .slice(0, 8)
+        .map((heading) => `  - ${heading}`)
+        .join('\n');
+
+      return `[${index + 1}] ${result.title}
+URL: ${result.url}
+Word count: ${result.wordCount}
+H1: ${result.headings.h1}
+H2:
+${h2List || '  - Khong co du lieu H2'}
+H3 noi bat:
+${h3List || '  - Khong co du lieu H3'}`;
+    })
+    .join('\n\n');
+}
+
+function buildCountHint(targetWordCount: number): string {
+  if (targetWordCount <= 1200) return '4-6';
+  if (targetWordCount <= 2200) return '6-9';
+  return '8-12';
 }
