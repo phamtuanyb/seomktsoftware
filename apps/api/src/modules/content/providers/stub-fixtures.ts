@@ -101,37 +101,40 @@ export function stubRewriteFor(args: { source: string; action: string; keyword: 
   } LSI keywords: ${args.keyword}, content marketing, SEO.`;
 }
 
-/** Generates a stub article string for streaming. ~2000 words of placeholder content. */
-export function stubArticleFor(keyword: string): string {
-  const intro = `[STUB] **${keyword}** đang là một trong những chủ đề được quan tâm nhất hiện nay. Bài viết này sẽ giúp bạn hiểu toàn diện về **${keyword}** — từ khái niệm cơ bản, lợi ích cụ thể, đến hướng dẫn áp dụng và những sai lầm cần tránh. Đặc biệt, chúng tôi tổng hợp các câu hỏi thường gặp giúp bạn tiết kiệm thời gian tìm kiếm. Nếu bạn đang muốn bắt đầu với ${keyword} một cách hiệu quả, đây chính là cẩm nang đầy đủ nhất.`;
+/** Generates a stub article string for streaming near the requested word count. */
+export function stubArticleFor(keyword: string, targetWordCount = 2000): string {
+  const intro = `# [STUB] ${keyword}: Huong dan toan dien\n\n**${keyword}** dang la mot trong nhung chu de duoc quan tam nhat hien nay. Bai viet nay giup ban hieu ro tu khai niem, loi ich, cach trien khai den sai lam can tranh. Noi dung dang chay o che do stub vi Claude chua san sang hoac API dang loi, nhung do dai van bam theo so tu muc tieu de ban test dung flow.`;
 
   const section = (title: string, body: string) => `\n\n## ${title}\n\n${body}\n\n`;
 
-  const filler = (theme: string) =>
+  const paragraph = (theme: string, index: number) =>
+    `Doan ${index} ve ${theme} lien quan den ${keyword}. Trong thuc te, nguoi lam SEO khong chi can mot dinh nghia dung ma con can cach ap dung vao boi canh cu the. Vi du, voi mot doanh nghiep nho, uu tien se la chi phi, toc do trien khai va kha nang do luong sau 30 ngay. Neu bo qua cac yeu to nay, noi dung rat de dai nhung khong giup nguoi doc ra quyet dinh. LSI keyword: SEO, content marketing, tu khoa dai, intent nguoi dung, content score.`;
+
+  const filler = (theme: string, paragraphs = 4) =>
     Array.from(
-      { length: 4 },
-      (_, i) =>
-        `Đoạn ${i + 1} về ${theme} liên quan đến ${keyword}. Đây là nội dung stub được sinh ra khi chưa cấu hình ANTHROPIC_API_KEY thật — paste API key vào .env để bài viết được sinh bằng Claude Sonnet 4. LSI keyword: SEO, content marketing, từ khóa dài, intent người dùng, content score.`,
+      { length: paragraphs },
+      (_, i) => paragraph(theme, i + 1),
     ).join(' ');
+  const perSectionParagraphs = Math.max(2, Math.ceil(targetWordCount / 700));
 
   const body = [
-    section(`${keyword} là gì?`, filler('khái niệm cơ bản')),
-    section(`Lợi ích chính của ${keyword}`, filler('lợi ích')),
-    section(`Hướng dẫn áp dụng ${keyword}`, filler('hướng dẫn triển khai')),
-    section(`Sai lầm thường gặp khi triển khai ${keyword}`, filler('sai lầm thực thi')),
+    section(`${keyword} la gi?`, filler('khai niem co ban', perSectionParagraphs)),
+    section(`Loi ich chinh cua ${keyword}`, filler('loi ich', perSectionParagraphs)),
+    section(`Huong dan ap dung ${keyword}`, filler('huong dan trien khai', perSectionParagraphs)),
+    section(`Sai lam thuong gap khi trien khai ${keyword}`, filler('sai lam thuc thi', perSectionParagraphs)),
     section(
-      'Câu hỏi thường gặp',
+      'Cau hoi thuong gap',
       [
-        `**${keyword} phù hợp với ai?** ${filler('đối tượng phù hợp')}`,
-        `**Chi phí triển khai bao nhiêu?** ${filler('ngân sách')}`,
-        `**Mất bao lâu để thấy kết quả?** ${filler('timeline kỳ vọng')}`,
-        `**Có cần kỹ năng kỹ thuật không?** ${filler('yêu cầu kỹ năng')}`,
-        `**Làm sao đo hiệu quả?** ${filler('KPI và đo lường')}`,
+        `**${keyword} phu hop voi ai?** ${filler('doi tuong phu hop', 1)}`,
+        `**Chi phi trien khai bao nhieu?** ${filler('ngan sach', 1)}`,
+        `**Mat bao lau de thay ket qua?** ${filler('timeline ky vong', 1)}`,
+        `**Co can ky nang ky thuat khong?** ${filler('yeu cau ky nang', 1)}`,
+        `**Lam sao do hieu qua?** ${filler('KPI va do luong', 1)}`,
       ].join('\n\n'),
     ),
     section(
-      'Kết luận',
-      `${keyword} là một chủ đề rộng và phức tạp, nhưng nếu nắm được nguyên tắc cốt lõi và áp dụng đúng cách, bạn hoàn toàn có thể tạo ra kết quả vượt trội. Hãy bắt đầu ngay hôm nay! [STUB MODE — paste real ANTHROPIC_API_KEY into .env to enable Claude].`,
+      'Ket luan',
+      `${keyword} la mot chu de rong, nhung neu bam dung intent, dung outline va do luong deu dan, ban co the tao ra noi dung huu ich hon doi thu. Hay bat dau bang mot checklist nho, do ket qua sau 30 ngay, roi mo rong cac phan dang co tin hieu tot. [STUB MODE - nap credit/cau hinh ANTHROPIC_API_KEY de sinh bang Claude].`,
     ),
   ].join('');
 

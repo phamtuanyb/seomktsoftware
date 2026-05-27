@@ -268,7 +268,7 @@ export class ArticleService {
     const stream = provider.generateStream({
       system: systemPrompt,
       prompt: userPrompt,
-      maxTokens: 8192,
+      maxTokens: this.maxOutputTokensFor(targetWordCount),
       temperature: 0.8,
       model: dto.model as LlmModel | undefined,
     });
@@ -485,6 +485,10 @@ export class ArticleService {
       .replace(/[#*_`>-]+/g, ' ')
       .trim();
     return t ? t.split(/\s+/).length : 0;
+  }
+
+  private maxOutputTokensFor(targetWordCount: number): number {
+    return Math.min(24_000, Math.max(8_192, Math.ceil(targetWordCount * 4)));
   }
 
   private toSlug(value: string): string {

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   type ArticleStreamEvent,
   type ArticleResult,
+  type OutlineFormat,
   type OutlineWithMetadata,
   contentApi,
 } from '@/lib/api/content';
@@ -38,7 +39,7 @@ export function OutlineDisplay({ outline, brandVoiceId, onArticleStreamed }: Out
           .trim(),
         outline: { h1: outline.h1, sections: outline.sections },
         brand_voice_id: brandVoiceId,
-        format: outline.metadata.format as 'blog' | 'how-to' | 'listicle',
+        format: outline.metadata.format as OutlineFormat,
         target_word_count: outline.metadata.target_word_count,
       })) {
         events.push(ev);

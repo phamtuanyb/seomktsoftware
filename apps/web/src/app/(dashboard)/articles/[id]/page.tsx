@@ -477,6 +477,10 @@ export default function ArticleDetailPage() {
                 className="font-mono text-sm leading-[22px]"
                 placeholder="# Tiêu đề&#10;&#10;## Section đầu tiên&#10;&#10;Nội dung..."
               />
+              <article
+                className="prose prose-zinc max-w-none rounded-md border bg-background px-6 py-5 prose-headings:scroll-mt-20 prose-headings:font-semibold prose-h1:border-b prose-h1:pb-3 prose-h1:text-3xl prose-h2:mt-8 prose-h2:border-b prose-h2:pb-2 prose-h2:text-2xl prose-h3:mt-6 prose-h3:text-xl prose-p:leading-7 prose-li:my-1 prose-table:text-sm"
+                dangerouslySetInnerHTML={{ __html: article.content_html }}
+              />
             </CardContent>
           </Card>
 

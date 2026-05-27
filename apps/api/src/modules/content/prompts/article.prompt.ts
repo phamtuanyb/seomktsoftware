@@ -75,6 +75,10 @@ ${buildBrandVoiceInjection(args.brandVoice)}`;
 export function buildArticleUserPrompt(args: BuildArticlePromptArgs): string {
   const outlineMd = renderOutlineAsMarkdown(args.outline);
   const formatRules = buildFormatRules(args.format);
+  const sectionCount = Math.max(1, args.outline.sections.length);
+  const sectionBudget = Math.max(180, Math.floor((args.targetWordCount - 320) / sectionCount));
+  const minWords = Math.floor(args.targetWordCount * 0.9);
+  const maxWords = Math.ceil(args.targetWordCount * 1.12);
 
   return `Viet mot bai SEO hoan chinh khoang ${args.targetWordCount} tu dua tren outline duoi day.
 
@@ -90,14 +94,17 @@ ${outlineMd}
 YEU CAU THUC THI:
 1. H1 phai chua keyword "${args.keyword}" va giu dung y dinh cua outline.
 2. Intro 120-180 tu: co hook cu the, nhac keyword trong 50 tu dau, noi ro van de nguoi doc dang gap.
-3. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
-4. Moi H3 can tra loi mot y cu the, khong lap lai tieu de.
-5. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
-6. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
-7. Them FAQ neu outline co FAQ hoac neu intent can giai dap cau hoi truoc khi mua/dung.
-8. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
-9. Do dai muc tieu: ${args.targetWordCount} tu, chap nhan lech khoang 15% neu noi dung can tu nhien.
-10. Chi tra ve Markdown thuan, bat dau ngay bang "#".
+3. Do dai bat buoc: bai viet phai nam trong khoang ${minWords}-${maxWords} tu. Khong duoc dung lai som sau 300-800 tu.
+4. Phan bo do dai: intro 120-180 tu, moi H2 khoang ${sectionBudget} tu, ket bai 120-180 tu. Neu H2 co nhieu H3, chia deu noi dung cho tung H3.
+5. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
+6. Moi H3 can tra loi mot y cu the, khong lap lai tieu de.
+7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA cua brand voice neu co.
+8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
+9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
+10. Them FAQ neu outline co FAQ hoac neu intent can giai dap cau hoi truoc khi mua/dung.
+11. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
+12. Neu den gan cuoi ma bai chua dat ${minWords} tu, tiep tuc mo rong cac H2 mong bang vi du, checklist, loi thuong gap, bang so sanh hoac case thuc te.
+13. Chi tra ve Markdown thuan, bat dau ngay bang "#".
 
 QUY TAC THEO FORMAT:
 ${formatRules}
@@ -154,14 +161,14 @@ function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice
 
 function buildFormatRules(format: OutlineFormat): string {
   const rules: Record<OutlineFormat, string> = {
-    blog: '- Viet nhu bai blog chuyen sau: giai thich ro, co vi du, co FAQ neu can.',
-    listicle: '- Moi muc listicle nen la mot H2 co so thu tu. Neu xep hang, noi ro tieu chi xep hang.',
-    'how-to': '- Trinh bay theo cac buoc hanh dong. Moi buoc can co dau vao, cach lam va loi thuong gap.',
-    review: '- Can co phan danh gia, uu/nhuoc diem, doi tuong phu hop va verdict cuoi bai.',
-    comparison: '- Can co bang so sanh Markdown va phan ket luan nen chon phuong an nao cho tung truong hop.',
-    faq: '- Moi H2/H3 nen la cau hoi that cua nguoi dung, cau tra loi thang vao van de.',
-    landing: '- Viet theo flow pain -> solution -> proof -> offer -> CTA. Cau chu ngan, thuyet phuc.',
-    product: '- Lam ro doi tuong phu hop, tinh nang chinh, loi ich, bang chung va CTA.',
+    blog: '- Blog: viet chuyen sau, co intro manh, giai thich ro, vi du thuc te, FAQ va CTA mem.',
+    listicle: '- Listicle: moi muc chinh la mot H2 co so thu tu, co tieu chi xep hang, uu/nhuoc diem ngan va ket luan lua chon.',
+    'how-to': '- How-to: trinh bay theo cac buoc hanh dong; moi buoc co muc tieu, cach lam, loi thuong gap va checklist.',
+    review: '- Review: co tieu chi danh gia, trai nghiem su dung, pros/cons, doi tuong phu hop/khong phu hop va verdict.',
+    comparison: '- Comparison: bat buoc co bang so sanh Markdown, tieu chi ro, phan tich trade-off va khuyen nghi theo tung nhu cau.',
+    faq: '- FAQ: moi H2/H3 la cau hoi that; tra loi ngan gon truoc, sau do mo rong bang vi du va luu y.',
+    landing: '- Landing: viet theo flow pain -> solution -> proof -> offer -> CTA; moi section phai phuc vu chuyen doi.',
+    product: '- Product: lam ro doi tuong phu hop, tinh nang, loi ich, bang chung, quy trinh dung thu/mua va CTA.',
   };
   return rules[format];
 }

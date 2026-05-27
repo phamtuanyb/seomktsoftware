@@ -149,7 +149,7 @@ export class ClaudeProvider implements LlmProvider {
     // (not the word "outline" — TN4 prompt embeds the input outline) so stub
     // mode picks the right fixture.
     const wantsRewrite = /NỘI DUNG GỐC|Body cũ \(để tham khảo/i.test(opts.prompt);
-    const wantsArticle = /Markdown output only|Bắt đầu viết|Viết một bài viết SEO/i.test(
+    const wantsArticle = /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
       opts.prompt,
     );
     const keyword = this.guessKeyword(opts.prompt);
@@ -168,7 +168,7 @@ export class ClaudeProvider implements LlmProvider {
                 : 'rewrite';
       content = stubRewriteFor({ source: opts.prompt, action, keyword });
     } else if (wantsArticle) {
-      content = stubArticleFor(keyword);
+      content = stubArticleFor(keyword, this.guessTargetWordCount(opts.prompt));
     } else {
       content = stubOutlineFor(keyword);
     }
@@ -206,14 +206,24 @@ export class ClaudeProvider implements LlmProvider {
 
   private guessKeyword(prompt: string): string {
     // Patterns we emit in our prompt templates:
-    //   `keyword: "..."`  /  `===== KEYWORD =====\n...`  /  `keyword "..."`
+    //   `keyword: "..."`  /  `KEYWORD CHINH:\n...`  /  `keyword "..."`
     const quoted = prompt.match(/keyword[^\n]*?["“']([^"”'\n]{2,80})["”']/i);
     if (quoted?.[1]) return quoted[1].trim();
+    const asciiLabeled = prompt.match(/KEYWORD CHINH:\s*\n([^\n]{2,120})/i);
+    if (asciiLabeled?.[1]) return asciiLabeled[1].trim();
     const labeled = prompt.match(/===== KEYWORD( CHÍNH)? =====\s*\n([^\n]{2,80})/i);
     if (labeled?.[2]) return labeled[2].trim();
     const inline = prompt.match(/keyword[":\s]+([^"'\n,]{2,80})/i);
     if (inline?.[1]) return inline[1].trim();
     return 'chủ đề mẫu';
+  }
+
+  private guessTargetWordCount(prompt: string): number {
+    const exact = prompt.match(/khoang\s+(\d{3,5})\s+tu/i);
+    if (exact?.[1]) return Number(exact[1]);
+    const range = prompt.match(/khoang\s+(\d{3,5})-(\d{3,5})\s+tu/i);
+    if (range?.[1] && range?.[2]) return Math.round((Number(range[1]) + Number(range[2])) / 2);
+    return 2000;
   }
 
   private estimateCost(apiModel: string, tokens: { input: number; output: number }): number {
