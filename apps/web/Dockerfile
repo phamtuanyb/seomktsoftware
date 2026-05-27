@@ -11,7 +11,7 @@ COPY packages/config/package.json ./packages/config/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/database/package.json ./packages/database/
 COPY packages/ui/package.json ./packages/ui/
-RUN pnpm install --frozen-lockfile
+RUN HUSKY=0 pnpm install --frozen-lockfile --prod=false
 
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -37,7 +37,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/config/package.json ./packages/config/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
-RUN pnpm install --frozen-lockfile
+RUN HUSKY=0 pnpm install --frozen-lockfile --prod=false
 
 COPY --from=builder /app/apps/web/.next ./apps/web/.next
 COPY --from=builder /app/apps/web/next.config.mjs ./apps/web/next.config.mjs
