@@ -17,7 +17,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-const MIN_SAMPLE_WORDS = 3000;
+const MIN_SAMPLE_WORDS = 500;
+const MAX_SAMPLE_WORDS = 3000;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
@@ -43,6 +44,26 @@ function MinWords(min: number, validationOptions?: ValidationOptions) {
   };
 }
 
+function MaxWords(max: number, validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'maxWords',
+      target: object.constructor,
+      propertyName,
+      constraints: [max],
+      options: validationOptions,
+      validator: {
+        validate(value: unknown) {
+          return typeof value === 'string' && countWords(value) <= max;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must contain at most ${args.constraints[0]} words`;
+        },
+      },
+    });
+  };
+}
+
 class SampleArticleDto {
   @ApiProperty({ required: false })
   @IsOptional()
@@ -52,12 +73,15 @@ class SampleArticleDto {
 
   @ApiProperty({
     required: false,
-    description: 'Inline article content (≥3000 words) OR provide url to fetch via readability.',
+    description: 'Inline article content (500-3000 words) OR provide url to fetch via readability.',
   })
   @IsOptional()
   @IsString()
   @MinWords(MIN_SAMPLE_WORDS, {
     message: `content phải có tối thiểu ${MIN_SAMPLE_WORDS} từ hoặc cung cấp url.`,
+  })
+  @MaxWords(MAX_SAMPLE_WORDS, {
+    message: `content chỉ được tối đa ${MAX_SAMPLE_WORDS} từ hoặc cung cấp url.`,
   })
   content?: string;
 
@@ -86,7 +110,7 @@ export class CreateBrandVoiceDto {
 
   @ApiProperty({
     type: [SampleArticleDto],
-    description: 'Spec TN5: 3-20 sample articles. Each needs either content (≥3000 words) or url.',
+    description: 'Spec TN5: 3-20 sample articles. Each needs either content (500-3000 words) or url.',
   })
   @IsArray()
   @ValidateNested({ each: true })

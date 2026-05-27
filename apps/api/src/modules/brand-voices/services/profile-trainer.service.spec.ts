@@ -21,9 +21,9 @@ describe('ProfileTrainerService', () => {
   });
   const longContent = (word: string, count = 3000): string => Array(count).fill(word).join(' ');
 
-  it('throws when no article reaches the 3000-word floor', async () => {
+  it('throws when no article reaches the 500-word floor', async () => {
     const trainer = new ProfileTrainerService(makeRegistry({ available: false }));
-    await expect(trainer.train([article('short', 'x')])).rejects.toThrow(/≥3000 từ/);
+    await expect(trainer.train([article('short', 'x')])).rejects.toThrow(/≥500 từ/);
   });
 
   it('returns a Zod-valid heuristic profile when provider.available=false', async () => {

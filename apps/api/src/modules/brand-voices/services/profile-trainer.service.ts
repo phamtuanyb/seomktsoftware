@@ -17,7 +17,7 @@ export interface TrainingResult {
   meta: ProfileMeta;
 }
 
-const MIN_SAMPLE_WORDS = 3000;
+const MIN_SAMPLE_WORDS = 500;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;

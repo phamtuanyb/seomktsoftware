@@ -27,10 +27,16 @@ export interface BrandVoiceDetail extends BrandVoiceListItem {
   meta: ProfileMeta;
 }
 
-const MIN_SAMPLE_WORDS = 3000;
+const MIN_SAMPLE_WORDS = 500;
+const MAX_SAMPLE_WORDS = 3000;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function trimToMaxWords(value: string): string {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  return words.length > MAX_SAMPLE_WORDS ? words.slice(0, MAX_SAMPLE_WORDS).join(' ') : value;
 }
 
 /**
@@ -39,7 +45,7 @@ function countWords(value: string): number {
  * Pipeline on create / retrain:
  *   1. For each sample_article with `url` (and no inline content): fetch
  *      via UrlFetcherService (readability) → use extracted text.
- *   2. Drop articles still < 3000 words after step 1.
+ *   2. Drop articles still outside the 500-3000 word sample range after step 1.
  *   3. Hand the cleaned articles to ProfileTrainerService → Claude
  *      Sonnet 4 returns a Zod-validated BrandVoiceProfile.
  *   4. Trainer also picks 3 reference articles (longest) so TN4 has
@@ -97,7 +103,7 @@ export class BrandVoicesService {
     if (articles.length === 0) {
       throw new BadRequestException({
         code: ErrorCode.VALIDATION_ERROR,
-        message: `Cần ít nhất 1 sample article có content ≥${MIN_SAMPLE_WORDS} từ (sau khi fetch URL nếu có).`,
+        message: `Cần ít nhất 1 sample article có content ${MIN_SAMPLE_WORDS}-${MAX_SAMPLE_WORDS} từ (sau khi fetch URL nếu có).`,
       });
     }
 
@@ -250,8 +256,9 @@ export class BrandVoicesService {
           this.logger.warn(`URL fetch failed for ${sample.url}: ${(err as Error).message}`);
         }
       }
-      if (countWords(content) >= MIN_SAMPLE_WORDS) {
-        out.push({ title, content });
+      const wordCount = countWords(content);
+      if (wordCount >= MIN_SAMPLE_WORDS) {
+        out.push({ title, content: trimToMaxWords(content) });
       }
     }
     return out;

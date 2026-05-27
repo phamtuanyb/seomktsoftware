@@ -20,10 +20,16 @@ interface SampleArticleInput {
   url: string;
 }
 
-const MIN_SAMPLE_WORDS = 3000;
+const MIN_SAMPLE_WORDS = 500;
+const MAX_SAMPLE_WORDS = 3000;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function isValidSampleContent(value: string): boolean {
+  const words = countWords(value);
+  return words >= MIN_SAMPLE_WORDS && words <= MAX_SAMPLE_WORDS;
 }
 
 function emptySamples(): SampleArticleInput[] {
@@ -82,7 +88,17 @@ export default function BrandVoicesPage() {
       if (incompleteSamples.length > 0) {
         const first = incompleteSamples[0]!;
         throw new Error(
-          `Bài mẫu ${first.index + 1} mới có ${countWords(first.content)}/${MIN_SAMPLE_WORDS} từ. Hãy nhập đủ ${MIN_SAMPLE_WORDS} từ hoặc dùng URL để hệ thống fetch.`,
+          `Bài mẫu ${first.index + 1} mới có ${countWords(first.content)} từ. Hãy nhập từ ${MIN_SAMPLE_WORDS}-${MAX_SAMPLE_WORDS} từ hoặc dùng URL để hệ thống fetch.`,
+        );
+      }
+
+      const oversizedSamples = samples
+        .map((s, index) => ({ index, content: s.content.trim(), url: s.url.trim() }))
+        .filter((s) => s.content && !s.url && countWords(s.content) > MAX_SAMPLE_WORDS);
+      if (oversizedSamples.length > 0) {
+        const first = oversizedSamples[0]!;
+        throw new Error(
+          `Bài mẫu ${first.index + 1} có ${countWords(first.content)} từ, vượt tối đa ${MAX_SAMPLE_WORDS} từ. Hãy rút gọn hoặc dùng URL để hệ thống fetch.`,
         );
       }
 
@@ -91,7 +107,7 @@ export default function BrandVoicesPage() {
           const content = s.content.trim();
           return {
             title: s.title.trim() || undefined,
-            content: countWords(content) >= MIN_SAMPLE_WORDS ? content : undefined,
+            content: isValidSampleContent(content) ? content : undefined,
             url: s.url.trim() || undefined,
           };
         })
@@ -99,7 +115,7 @@ export default function BrandVoicesPage() {
 
       if (cleaned.length < 3) {
         throw new Error(
-          `Cần ≥3 bài mẫu. Mỗi bài hoặc nhập content ≥${MIN_SAMPLE_WORDS} từ, hoặc paste URL để hệ thống fetch.`,
+          `Cần ≥3 bài mẫu. Mỗi bài hoặc nhập content ${MIN_SAMPLE_WORDS}-${MAX_SAMPLE_WORDS} từ, hoặc paste URL để hệ thống fetch.`,
         );
       }
       const body: CreateBrandVoiceRequest = {
@@ -247,7 +263,7 @@ export default function BrandVoicesPage() {
         <CardHeader>
           <CardTitle>Tạo brand voice mới</CardTitle>
           <CardDescription>
-            Nhập ít nhất 3 bài mẫu (mỗi bài ≥{MIN_SAMPLE_WORDS} từ HOẶC paste URL — hệ thống tự fetch
+            Nhập ít nhất 3 bài mẫu (mỗi bài {MIN_SAMPLE_WORDS}-{MAX_SAMPLE_WORDS} từ HOẶC paste URL — hệ thống tự fetch
             qua Readability). Tốn 1 quota brand_voices.
           </CardDescription>
         </CardHeader>
@@ -299,7 +315,7 @@ export default function BrandVoicesPage() {
                     }}
                   />
                   <Textarea
-                    placeholder={`Hoặc paste nội dung bài ${i + 1} (≥${MIN_SAMPLE_WORDS} từ)`}
+                    placeholder={`Hoặc paste nội dung bài ${i + 1} (${MIN_SAMPLE_WORDS}-${MAX_SAMPLE_WORDS} từ)`}
                     rows={6}
                     value={s.content}
                     onChange={(e) => {
@@ -311,7 +327,7 @@ export default function BrandVoicesPage() {
                   <p className="text-xs text-muted-foreground">
                     {s.url.trim()
                       ? 'Sẽ fetch URL nếu content trống.'
-                      : `${countWords(s.content)}/${MIN_SAMPLE_WORDS} từ tối thiểu`}
+                      : `${countWords(s.content)} từ (${MIN_SAMPLE_WORDS}-${MAX_SAMPLE_WORDS})`}
                   </p>
                 </div>
               ))}
