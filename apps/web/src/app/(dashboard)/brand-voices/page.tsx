@@ -20,7 +20,11 @@ interface SampleArticleInput {
   url: string;
 }
 
-const MIN_CONTENT = 200;
+const MIN_SAMPLE_WORDS = 3000;
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
 
 function emptySamples(): SampleArticleInput[] {
   return [
@@ -73,16 +77,19 @@ export default function BrandVoicesPage() {
     setSubmitting(true);
     try {
       const cleaned = samples
-        .map((s) => ({
-          title: s.title.trim() || undefined,
-          content: s.content.trim().length >= MIN_CONTENT ? s.content : undefined,
-          url: s.url.trim() || undefined,
-        }))
+        .map((s) => {
+          const content = s.content.trim();
+          return {
+            title: s.title.trim() || undefined,
+            content: countWords(content) >= MIN_SAMPLE_WORDS ? content : undefined,
+            url: s.url.trim() || undefined,
+          };
+        })
         .filter((s) => s.content || s.url);
 
       if (cleaned.length < 3) {
         throw new Error(
-          `Cần ≥3 bài mẫu. Mỗi bài hoặc nhập content ≥${MIN_CONTENT} ký tự, hoặc paste URL để hệ thống fetch.`,
+          `Cần ≥3 bài mẫu. Mỗi bài hoặc nhập content ≥${MIN_SAMPLE_WORDS} từ, hoặc paste URL để hệ thống fetch.`,
         );
       }
       const body: CreateBrandVoiceRequest = {
@@ -230,7 +237,7 @@ export default function BrandVoicesPage() {
         <CardHeader>
           <CardTitle>Tạo brand voice mới</CardTitle>
           <CardDescription>
-            Nhập ít nhất 3 bài mẫu (mỗi bài ≥{MIN_CONTENT} ký tự HOẶC paste URL — hệ thống tự fetch
+            Nhập ít nhất 3 bài mẫu (mỗi bài ≥{MIN_SAMPLE_WORDS} từ HOẶC paste URL — hệ thống tự fetch
             qua Readability). Tốn 1 quota brand_voices.
           </CardDescription>
         </CardHeader>
@@ -282,7 +289,7 @@ export default function BrandVoicesPage() {
                     }}
                   />
                   <Textarea
-                    placeholder={`Hoặc paste nội dung bài ${i + 1} (≥${MIN_CONTENT} ký tự)`}
+                    placeholder={`Hoặc paste nội dung bài ${i + 1} (≥${MIN_SAMPLE_WORDS} từ)`}
                     rows={6}
                     value={s.content}
                     onChange={(e) => {
@@ -294,7 +301,7 @@ export default function BrandVoicesPage() {
                   <p className="text-xs text-muted-foreground">
                     {s.url.trim()
                       ? 'Sẽ fetch URL nếu content trống.'
-                      : `${s.content.length}/${MIN_CONTENT} ký tự tối thiểu`}
+                      : `${countWords(s.content)}/${MIN_SAMPLE_WORDS} từ tối thiểu`}
                   </p>
                 </div>
               ))}

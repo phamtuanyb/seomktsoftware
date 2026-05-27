@@ -17,6 +17,12 @@ export interface TrainingResult {
   meta: ProfileMeta;
 }
 
+const MIN_SAMPLE_WORDS = 3000;
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
 /**
  * Section 8 TN5 step 2-3 — ask Claude Sonnet 4 for a Brand Voice Profile,
  * validate the result with Zod, fall back to a deterministic heuristic
@@ -28,15 +34,17 @@ export interface TrainingResult {
 @Injectable()
 export class ProfileTrainerService {
   private readonly logger = new Logger(ProfileTrainerService.name);
-  private static readonly MAX_CHARS_PER_ARTICLE = 4000;
+  private static readonly MAX_CHARS_PER_ARTICLE = 24000;
   private static readonly REFERENCE_COUNT = 3;
 
   constructor(private readonly llm: LlmRegistry) {}
 
   async train(articles: TrainingArticle[]): Promise<TrainingResult> {
-    const validArticles = articles.filter((a) => a.content && a.content.length >= 200);
+    const validArticles = articles.filter(
+      (a) => a.content && countWords(a.content) >= MIN_SAMPLE_WORDS,
+    );
     if (validArticles.length === 0) {
-      throw new Error('Cần ít nhất 1 bài có content ≥200 ký tự để train brand voice.');
+      throw new Error(`Cần ít nhất 1 bài có content ≥${MIN_SAMPLE_WORDS} từ để train brand voice.`);
     }
 
     const reference = this.pickReferences(validArticles);

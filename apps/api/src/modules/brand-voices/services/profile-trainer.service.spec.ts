@@ -19,15 +19,16 @@ describe('ProfileTrainerService', () => {
     title,
     content,
   });
+  const longContent = (word: string, count = 3000): string => Array(count).fill(word).join(' ');
 
-  it('throws when no article reaches the 200-char floor', async () => {
+  it('throws when no article reaches the 3000-word floor', async () => {
     const trainer = new ProfileTrainerService(makeRegistry({ available: false }));
-    await expect(trainer.train([article('short', 'x')])).rejects.toThrow(/≥200 ký tự/);
+    await expect(trainer.train([article('short', 'x')])).rejects.toThrow(/≥3000 từ/);
   });
 
   it('returns a Zod-valid heuristic profile when provider.available=false', async () => {
     const trainer = new ProfileTrainerService(makeRegistry({ available: false }));
-    const longA = 'Câu ngắn. '.repeat(40) + 'Bạn nên đọc bài này. '.repeat(20);
+    const longA = `${longContent('Bạn nên đọc bài này.', 3000)} Câu ngắn.`;
     const result = await trainer.train([
       article(longA, 'A'),
       article(longA, 'B'),
@@ -71,7 +72,7 @@ describe('ProfileTrainerService', () => {
       makeRegistry({ available: true, generate } as Partial<LlmProvider>),
     );
 
-    const long = 'a'.repeat(800);
+    const long = longContent('alpha');
     const result = await trainer.train([
       article(long, 'A'),
       article(long, 'B'),
@@ -113,7 +114,7 @@ describe('ProfileTrainerService', () => {
     const trainer = new ProfileTrainerService(
       makeRegistry({ available: true, generate } as Partial<LlmProvider>),
     );
-    const long = 'b'.repeat(600);
+    const long = longContent('beta');
     const result = await trainer.train([article(long), article(long), article(long)]);
     expect(result.meta.algorithm).toBe('claude-sonnet-4');
     expect(result.profile.tone.primary).toBe('casual');
@@ -128,7 +129,7 @@ describe('ProfileTrainerService', () => {
     const trainer = new ProfileTrainerService(
       makeRegistry({ available: true, generate } as Partial<LlmProvider>),
     );
-    const long = 'c'.repeat(600);
+    const long = longContent('charlie');
     const result = await trainer.train([article(long), article(long), article(long)]);
     expect(result.meta.algorithm).toBe('placeholder-heuristic');
     expect(result.meta.upgraded_to_real_at).toBeNull();
@@ -144,7 +145,7 @@ describe('ProfileTrainerService', () => {
     const trainer = new ProfileTrainerService(
       makeRegistry({ available: true, generate } as Partial<LlmProvider>),
     );
-    const long = 'd'.repeat(600);
+    const long = longContent('delta');
     const result = await trainer.train([article(long), article(long), article(long)]);
     expect(result.meta.algorithm).toBe('placeholder-heuristic');
   });
@@ -153,10 +154,10 @@ describe('ProfileTrainerService', () => {
     const trainer = new ProfileTrainerService(makeRegistry({ available: false }));
     const result = await trainer.train([
       article('a'.repeat(200), 'shortest'),
-      article('b'.repeat(800), 'longest'),
-      article('c'.repeat(500), 'mid'),
+      article(longContent('b', 3005), 'longest'),
+      article(longContent('c', 3003), 'mid'),
       article('d'.repeat(300), 'second-shortest'),
-      article('e'.repeat(700), 'second-longest'),
+      article(longContent('e', 3004), 'second-longest'),
     ]);
     expect(result.reference_articles.map((a) => a.title)).toEqual([
       'longest',

@@ -27,13 +27,19 @@ export interface BrandVoiceDetail extends BrandVoiceListItem {
   meta: ProfileMeta;
 }
 
+const MIN_SAMPLE_WORDS = 3000;
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
 /**
  * Section 8 TN5 — Brand Voice CRUD + Claude-based training.
  *
  * Pipeline on create / retrain:
  *   1. For each sample_article with `url` (and no inline content): fetch
  *      via UrlFetcherService (readability) → use extracted text.
- *   2. Drop articles still < 200 chars after step 1.
+ *   2. Drop articles still < 3000 words after step 1.
  *   3. Hand the cleaned articles to ProfileTrainerService → Claude
  *      Sonnet 4 returns a Zod-validated BrandVoiceProfile.
  *   4. Trainer also picks 3 reference articles (longest) so TN4 has
@@ -91,7 +97,7 @@ export class BrandVoicesService {
     if (articles.length === 0) {
       throw new BadRequestException({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Cần ít nhất 1 sample article có content ≥200 ký tự (sau khi fetch URL nếu có).',
+        message: `Cần ít nhất 1 sample article có content ≥${MIN_SAMPLE_WORDS} từ (sau khi fetch URL nếu có).`,
       });
     }
 
@@ -235,7 +241,7 @@ export class BrandVoicesService {
     for (const sample of samples) {
       let content = (sample.content ?? '').trim();
       let title = sample.title?.trim() ?? null;
-      if ((!content || content.length < 200) && sample.url) {
+      if ((!content || countWords(content) < MIN_SAMPLE_WORDS) && sample.url) {
         try {
           const fetched = await this.urlFetcher.fetch(sample.url);
           content = fetched.content;
@@ -244,7 +250,7 @@ export class BrandVoicesService {
           this.logger.warn(`URL fetch failed for ${sample.url}: ${(err as Error).message}`);
         }
       }
-      if (content.length >= 200) {
+      if (countWords(content) >= MIN_SAMPLE_WORDS) {
         out.push({ title, content });
       }
     }

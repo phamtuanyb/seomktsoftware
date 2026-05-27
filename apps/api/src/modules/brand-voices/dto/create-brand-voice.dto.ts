@@ -11,8 +11,37 @@ import {
   IsUrl,
   MaxLength,
   MinLength,
+  registerDecorator,
+  type ValidationArguments,
+  type ValidationOptions,
   ValidateNested,
 } from 'class-validator';
+
+const MIN_SAMPLE_WORDS = 3000;
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function MinWords(min: number, validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'minWords',
+      target: object.constructor,
+      propertyName,
+      constraints: [min],
+      options: validationOptions,
+      validator: {
+        validate(value: unknown) {
+          return typeof value === 'string' && countWords(value) >= min;
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must contain at least ${args.constraints[0]} words`;
+        },
+      },
+    });
+  };
+}
 
 class SampleArticleDto {
   @ApiProperty({ required: false })
@@ -23,11 +52,13 @@ class SampleArticleDto {
 
   @ApiProperty({
     required: false,
-    description: 'Inline article content (≥200 chars) OR provide url to fetch via readability.',
+    description: 'Inline article content (≥3000 words) OR provide url to fetch via readability.',
   })
   @IsOptional()
   @IsString()
-  @MinLength(200)
+  @MinWords(MIN_SAMPLE_WORDS, {
+    message: `content phải có tối thiểu ${MIN_SAMPLE_WORDS} từ hoặc cung cấp url.`,
+  })
   content?: string;
 
   @ApiProperty({
@@ -55,7 +86,7 @@ export class CreateBrandVoiceDto {
 
   @ApiProperty({
     type: [SampleArticleDto],
-    description: 'Spec TN5: 3-20 sample articles. Each needs either content (≥500 chars) or url.',
+    description: 'Spec TN5: 3-20 sample articles. Each needs either content (≥3000 words) or url.',
   })
   @IsArray()
   @ValidateNested({ each: true })
