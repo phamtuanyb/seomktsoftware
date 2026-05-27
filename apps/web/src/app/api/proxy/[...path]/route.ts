@@ -53,6 +53,8 @@ function buildHeaders(req: Request, access: string | null): Record<string, strin
   const headers: Record<string, string> = {
     'Content-Type': req.headers.get('content-type') ?? 'application/json',
   };
+  const accept = req.headers.get('accept');
+  if (accept) headers.Accept = accept;
   if (access) headers['Authorization'] = `Bearer ${access}`;
   const apiKey = req.headers.get('x-api-key');
   if (apiKey) headers['X-API-Key'] = apiKey;
@@ -81,10 +83,22 @@ async function tryRefresh(): Promise<string | null> {
 }
 
 async function passthrough(res: Response): Promise<Response> {
+  const contentType = res.headers.get('content-type') ?? 'application/json';
+  if (contentType.includes('text/event-stream')) {
+    return new Response(res.body, {
+      status: res.status,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': res.headers.get('cache-control') ?? 'no-cache',
+        'X-Accel-Buffering': res.headers.get('x-accel-buffering') ?? 'no',
+      },
+    });
+  }
+
   const buf = await res.arrayBuffer();
   return new NextResponse(buf, {
     status: res.status,
-    headers: { 'Content-Type': res.headers.get('content-type') ?? 'application/json' },
+    headers: { 'Content-Type': contentType },
   });
 }
 

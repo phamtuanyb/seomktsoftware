@@ -76,6 +76,16 @@ export default function BrandVoicesPage() {
     setSuccess(null);
     setSubmitting(true);
     try {
+      const incompleteSamples = samples
+        .map((s, index) => ({ index, content: s.content.trim(), url: s.url.trim() }))
+        .filter((s) => s.content && !s.url && countWords(s.content) < MIN_SAMPLE_WORDS);
+      if (incompleteSamples.length > 0) {
+        const first = incompleteSamples[0]!;
+        throw new Error(
+          `Bài mẫu ${first.index + 1} mới có ${countWords(first.content)}/${MIN_SAMPLE_WORDS} từ. Hãy nhập đủ ${MIN_SAMPLE_WORDS} từ hoặc dùng URL để hệ thống fetch.`,
+        );
+      }
+
       const cleaned = samples
         .map((s) => {
           const content = s.content.trim();
