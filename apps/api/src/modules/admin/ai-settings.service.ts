@@ -56,6 +56,7 @@ export class AiSettingsService implements OnModuleInit {
         claude: this.providerStatus('claude'),
         openai: this.providerStatus('openai'),
         gemini: this.providerStatus('gemini'),
+        yescale: this.providerStatus('yescale'),
       },
       updated_at: defaultRow?.updatedAt?.toISOString() ?? null,
     };
@@ -81,6 +82,7 @@ export class AiSettingsService implements OnModuleInit {
       this.upsertSecret('claude', dto.claude_api_key, adminId),
       this.upsertSecret('openai', dto.openai_api_key, adminId),
       this.upsertSecret('gemini', dto.gemini_api_key, adminId),
+      this.upsertSecret('yescale', dto.yescale_api_key, adminId),
     ]);
 
     await this.refreshCache();
@@ -109,15 +111,30 @@ export class AiSettingsService implements OnModuleInit {
 
   private async refreshCache(): Promise<void> {
     const rows = await this.prisma.appSetting.findMany({
-      where: { key: { in: ['ai.default_provider', 'ai.claude.api_key', 'ai.openai.api_key', 'ai.gemini.api_key'] } },
+      where: {
+        key: {
+          in: [
+            'ai.default_provider',
+            'ai.claude.api_key',
+            'ai.openai.api_key',
+            'ai.gemini.api_key',
+            'ai.yescale.api_key',
+          ],
+        },
+      },
     });
     const defaultRow = rows.find((r) => r.key === 'ai.default_provider');
     const configured = (defaultRow?.valueJson as { provider?: AiProviderName } | null)?.provider;
-    if (configured === 'claude' || configured === 'openai' || configured === 'gemini') {
+    if (
+      configured === 'claude' ||
+      configured === 'openai' ||
+      configured === 'gemini' ||
+      configured === 'yescale'
+    ) {
       this.defaultProvider = configured;
     }
 
-    for (const provider of ['claude', 'openai', 'gemini'] as const) {
+    for (const provider of ['claude', 'openai', 'gemini', 'yescale'] as const) {
       const row = rows.find((r) => r.key === `ai.${provider}.api_key`);
       this.adminKeys[provider] = row?.encryptedValue ? this.crypto.decrypt(row.encryptedValue) : undefined;
     }
@@ -132,6 +149,7 @@ export class AiSettingsService implements OnModuleInit {
   private envKey(provider: AiProviderName): string | undefined {
     if (provider === 'claude') return this.cfg.get<string>('ai.anthropicApiKey') ?? process.env.ANTHROPIC_API_KEY;
     if (provider === 'openai') return this.cfg.get<string>('ai.openaiApiKey') ?? process.env.OPENAI_API_KEY;
-    return this.cfg.get<string>('ai.geminiApiKey') ?? process.env.GEMINI_API_KEY;
+    if (provider === 'gemini') return this.cfg.get<string>('ai.geminiApiKey') ?? process.env.GEMINI_API_KEY;
+    return this.cfg.get<string>('ai.yescaleApiKey') ?? process.env.YESCALE_API_KEY;
   }
 }

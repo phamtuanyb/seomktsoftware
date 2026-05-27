@@ -19,6 +19,7 @@ export default function AdminDashboardPage() {
   const [claudeKey, setClaudeKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
+  const [yescaleKey, setYescaleKey] = useState('');
 
   useEffect(() => {
     Promise.all([adminApi.stats(), adminApi.getAiSettings()])
@@ -42,11 +43,13 @@ export default function AdminDashboardPage() {
         claude_api_key: claudeKey.trim() || undefined,
         openai_api_key: openaiKey.trim() || undefined,
         gemini_api_key: geminiKey.trim() || undefined,
+        yescale_api_key: yescaleKey.trim() || undefined,
       });
       setAiSettings(updated);
       setClaudeKey('');
       setOpenaiKey('');
       setGeminiKey('');
+      setYescaleKey('');
       setAiSuccess('Đã lưu cấu hình AI cho TN viết bài.');
     } catch (err) {
       setError((err as Error).message);
@@ -115,7 +118,7 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={saveAiSettings} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-5">
               <div className="space-y-2">
                 <label htmlFor="ai-provider" className="text-sm font-medium">
                   Provider mặc định
@@ -129,17 +132,20 @@ export default function AdminDashboardPage() {
                   <option value="claude">Claude</option>
                   <option value="openai">OpenAI</option>
                   <option value="gemini">Gemini</option>
+                  <option value="yescale">Yescale</option>
                 </select>
               </div>
               <ProviderStatus label="Claude" status={aiSettings?.providers.claude} />
               <ProviderStatus label="OpenAI" status={aiSettings?.providers.openai} />
               <ProviderStatus label="Gemini" status={aiSettings?.providers.gemini} />
+              <ProviderStatus label="Yescale" status={aiSettings?.providers.yescale} />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <SecretInput label="Claude API key" value={claudeKey} onChange={setClaudeKey} />
               <SecretInput label="OpenAI API key" value={openaiKey} onChange={setOpenaiKey} />
               <SecretInput label="Gemini API key" value={geminiKey} onChange={setGeminiKey} />
+              <SecretInput label="Yescale API key" value={yescaleKey} onChange={setYescaleKey} />
             </div>
 
             {aiSuccess && <p className="text-sm text-emerald-700">{aiSuccess}</p>}

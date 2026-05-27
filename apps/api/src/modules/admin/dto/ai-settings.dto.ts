@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export const AI_PROVIDERS = ['claude', 'openai', 'gemini'] as const;
+export const AI_PROVIDERS = ['claude', 'openai', 'gemini', 'yescale'] as const;
 export type AiProviderName = (typeof AI_PROVIDERS)[number];
 
 export class UpdateAiSettingsDto {
@@ -27,4 +27,10 @@ export class UpdateAiSettingsDto {
   @IsString()
   @MaxLength(500)
   gemini_api_key?: string;
+
+  @ApiProperty({ required: false, description: 'Yescale API key. Empty string keeps existing.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  yescale_api_key?: string;
 }

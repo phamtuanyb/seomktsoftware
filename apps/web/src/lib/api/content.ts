@@ -93,7 +93,8 @@ export interface GenerateArticleRequest {
     | 'gpt-4o'
     | 'gpt-4o-mini'
     | 'gemini-1.5-pro'
-    | 'gemini-1.5-flash';
+    | 'gemini-1.5-flash'
+    | 'yescale-gpt-4.1-mini';
   enable_schema_markup?: boolean;
 }
 

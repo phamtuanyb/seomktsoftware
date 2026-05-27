@@ -54,7 +54,7 @@ export interface AdminStats {
   publish_jobs: { total: number; succeeded: number; failed: number; pending: number };
 }
 
-export type AiProviderName = 'claude' | 'openai' | 'gemini';
+export type AiProviderName = 'claude' | 'openai' | 'gemini' | 'yescale';
 
 export interface AiSettings {
   default_provider: AiProviderName;
@@ -76,6 +76,7 @@ export const adminApi = {
     claude_api_key: string;
     openai_api_key: string;
     gemini_api_key: string;
+    yescale_api_key: string;
   }>) => api.patch<AiSettings>('/admin/ai-settings', body),
 
   listUsers: (query?: {

@@ -11,6 +11,7 @@ export type LlmModel =
   | 'gpt-4o-mini'
   | 'gemini-1.5-pro'
   | 'gemini-1.5-flash'
+  | 'yescale-gpt-4.1-mini'
   | 'stub';
 
 export interface LlmGenerateOptions {
@@ -71,11 +72,16 @@ export interface LlmProvider {
 export const LLM_PROVIDER_CLAUDE = Symbol('LLM_PROVIDER_CLAUDE');
 export const LLM_PROVIDER_OPENAI = Symbol('LLM_PROVIDER_OPENAI');
 export const LLM_PROVIDER_GEMINI = Symbol('LLM_PROVIDER_GEMINI');
+export const LLM_PROVIDER_YESCALE = Symbol('LLM_PROVIDER_YESCALE');
 export const LLM_PROVIDER_REGISTRY = Symbol('LLM_PROVIDER_REGISTRY');
 
 /** Maps the spec's `model` string to a provider key + concrete API model. */
 export function resolveModel(model?: LlmModel): {
-  providerKey: typeof LLM_PROVIDER_CLAUDE | typeof LLM_PROVIDER_OPENAI | typeof LLM_PROVIDER_GEMINI;
+  providerKey:
+    | typeof LLM_PROVIDER_CLAUDE
+    | typeof LLM_PROVIDER_OPENAI
+    | typeof LLM_PROVIDER_GEMINI
+    | typeof LLM_PROVIDER_YESCALE;
   apiModel: string;
 } {
   switch (model) {
@@ -87,6 +93,8 @@ export function resolveModel(model?: LlmModel): {
       return { providerKey: LLM_PROVIDER_GEMINI, apiModel: 'gemini-1.5-flash' };
     case 'gemini-1.5-pro':
       return { providerKey: LLM_PROVIDER_GEMINI, apiModel: 'gemini-1.5-pro' };
+    case 'yescale-gpt-4.1-mini':
+      return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-4.1-mini' };
     case 'claude-haiku':
       return { providerKey: LLM_PROVIDER_CLAUDE, apiModel: 'claude-haiku-4-5-20251001' };
     case 'claude-sonnet-4':
