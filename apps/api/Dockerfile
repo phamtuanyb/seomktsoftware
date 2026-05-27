@@ -31,6 +31,7 @@ RUN pnpm --filter @mkt-seo/database generate \
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 # Add a non-root user.
 RUN addgroup -S app && adduser -S app -G app
@@ -46,7 +47,7 @@ RUN HUSKY=0 pnpm install --frozen-lockfile --prod=false
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+RUN pnpm --filter @mkt-seo/database exec prisma generate
 
 USER app
 EXPOSE 3005
