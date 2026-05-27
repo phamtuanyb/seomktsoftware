@@ -4,6 +4,10 @@ import { ACCESS_COOKIE, REFRESH_COOKIE } from './lib/auth/session';
 const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
 const PROTECTED_PREFIXES = [
   '/dashboard',
+  '/admin',
+  '/articles',
+  '/pipeline',
+  '/onboarding',
   '/keywords',
   '/content',
   '/brand-voices',

@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 export const ACCESS_COOKIE = 'mkt_access';
 export const REFRESH_COOKIE = 'mkt_refresh';
 
-const PROD = process.env.NODE_ENV === 'production';
+const PUBLIC_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? '';
+const SECURE_COOKIES = PUBLIC_URL.startsWith('https://');
 
 export interface CookieTokens {
   access_token: string;
@@ -19,14 +20,14 @@ export async function setAuthCookies(tokens: CookieTokens): Promise<void> {
   const jar = await cookies();
   jar.set(ACCESS_COOKIE, tokens.access_token, {
     httpOnly: true,
-    secure: PROD,
+    secure: SECURE_COOKIES,
     sameSite: 'lax',
     path: '/',
     maxAge: tokens.expires_in,
   });
   jar.set(REFRESH_COOKIE, tokens.refresh_token, {
     httpOnly: true,
-    secure: PROD,
+    secure: SECURE_COOKIES,
     sameSite: 'lax',
     path: '/',
     maxAge: 30 * 24 * 60 * 60, // 30 days, matches Section 9 default
