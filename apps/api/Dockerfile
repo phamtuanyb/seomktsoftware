@@ -41,7 +41,7 @@ COPY packages/config/package.json ./packages/config/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/database/package.json ./packages/database/
 COPY packages/ui/package.json ./packages/ui/
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 # Built artefacts from builder stage.
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist

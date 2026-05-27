@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @mkt-seo/shared build && pnpm --filter @mkt-seo/ui build && pnpm --filter @mkt-seo/database generate && pnpm --filter @mkt-seo/web build",
+  "installCommand": "echo 'install handled in buildCommand'",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./apps/web ./packages/shared ./packages/ui ./packages/database/prisma ./pnpm-lock.yaml ./vercel.json",
+  "regions": ["sin1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

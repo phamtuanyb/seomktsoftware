@@ -20,5 +20,6 @@
     "**/.next": true,
     "**/.turbo": true,
     "**/coverage": true
-  }
+  },
+  "prisma.pinToPrisma6": true
 }
