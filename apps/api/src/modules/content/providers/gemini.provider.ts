@@ -21,8 +21,9 @@ export class GeminiProvider implements LlmProvider {
   constructor(private readonly settings: AiSettingsService) {}
 
   async generate(opts: LlmGenerateOptions): Promise<LlmGenerateResult> {
-    const { apiModel } = resolveModel(opts.model ?? 'gemini-1.5-pro');
-    const key = await this.settings.getApiKey('gemini');
+    const runtime = await this.settings.getRuntimeConfig('gemini', opts.model);
+    const { apiModel } = resolveModel(runtime.model);
+    const key = runtime.apiKey;
     if (!key) return this.stubGenerate(opts, apiModel);
 
     try {
@@ -32,9 +33,7 @@ export class GeminiProvider implements LlmProvider {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: opts.system
-              ? { parts: [{ text: opts.system }] }
-              : undefined,
+            systemInstruction: opts.system ? { parts: [{ text: opts.system }] } : undefined,
             contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
             generationConfig: {
               maxOutputTokens: opts.maxTokens ?? 8192,
@@ -48,11 +47,13 @@ export class GeminiProvider implements LlmProvider {
         throw new Error(`Gemini ${response.status}: ${await response.text()}`);
       }
       const json = (await response.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string }> };
+          finishReason?: string;
+        }>;
         usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
       };
-      const content =
-        json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+      const content = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
       const tokensUsed = {
         input: json.usageMetadata?.promptTokenCount ?? 0,
         output: json.usageMetadata?.candidatesTokenCount ?? 0,
@@ -86,9 +87,10 @@ export class GeminiProvider implements LlmProvider {
   }
 
   private stubGenerate(opts: LlmGenerateOptions, apiModel: string): LlmGenerateResult {
-    const wantsArticle = /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
-      opts.prompt,
-    );
+    const wantsArticle =
+      /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
+        opts.prompt,
+      );
     const keyword =
       opts.prompt.match(/KEYWORD CHINH:\s*\n([^\n]{2,120})/i)?.[1]?.trim() ??
       opts.prompt.match(/keyword[^\n]*?["“']([^"”'\n]{2,80})["”']/i)?.[1]?.trim() ??
@@ -97,7 +99,10 @@ export class GeminiProvider implements LlmProvider {
     const content = wantsArticle ? stubArticleFor(keyword, target) : stubOutlineFor(keyword);
     return {
       content,
-      tokensUsed: { input: Math.ceil(opts.prompt.length / 4), output: Math.ceil(content.length / 4) },
+      tokensUsed: {
+        input: Math.ceil(opts.prompt.length / 4),
+        output: Math.ceil(content.length / 4),
+      },
       modelUsed: `${apiModel}-stub`,
       costUsd: 0,
       isStub: true,

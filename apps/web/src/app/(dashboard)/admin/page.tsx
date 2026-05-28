@@ -1,12 +1,63 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { adminApi, type AdminStats, type AiProviderName, type AiSettings } from '@/lib/api/admin';
+import {
+  adminApi,
+  type AdminStats,
+  type AiProviderConfig,
+  type AiProviderConfigInput,
+  type AiProviderName,
+  type AiSettings,
+  type ProviderModel,
+} from '@/lib/api/admin';
+
+type EditableProviderConfig = {
+  id?: string;
+  label: string;
+  model: ProviderModel;
+  api_key: string;
+  is_default: boolean;
+  editable: boolean;
+  deletable: boolean;
+  source: 'admin' | 'env';
+  key_preview?: string;
+  updated_at?: string | null;
+};
+
+const PROVIDER_LABELS: Record<AiProviderName, string> = {
+  claude: 'Claude',
+  openai: 'OpenAI',
+  gemini: 'Gemini',
+  yescale: 'Yescale',
+};
+
+const MODEL_OPTIONS: Record<AiProviderName, Array<{ value: ProviderModel; label: string }>> = {
+  claude: [
+    { value: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
+    { value: 'claude-haiku', label: 'Claude Haiku' },
+  ],
+  openai: [
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  ],
+  gemini: [
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+  ],
+  yescale: [{ value: 'yescale-gpt-4.1-mini', label: 'Yescale GPT-4.1 Mini' }],
+};
+
+const DEFAULT_MODEL: Record<AiProviderName, ProviderModel> = {
+  claude: 'claude-sonnet-4',
+  openai: 'gpt-4o',
+  gemini: 'gemini-1.5-pro',
+  yescale: 'yescale-gpt-4.1-mini',
+};
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -16,21 +67,35 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [aiSuccess, setAiSuccess] = useState<string | null>(null);
   const [defaultProvider, setDefaultProvider] = useState<AiProviderName>('claude');
-  const [claudeKey, setClaudeKey] = useState('');
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [yescaleKey, setYescaleKey] = useState('');
+  const [configsByProvider, setConfigsByProvider] = useState<
+    Record<AiProviderName, EditableProviderConfig[]>
+  >({
+    claude: [],
+    openai: [],
+    gemini: [],
+    yescale: [],
+  });
 
   useEffect(() => {
     Promise.all([adminApi.stats(), adminApi.getAiSettings()])
       .then(([statsRes, aiRes]) => {
         setStats(statsRes);
-        setAiSettings(aiRes);
-        setDefaultProvider(aiRes.default_provider);
+        applyAiSettings(aiRes);
       })
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  function applyAiSettings(next: AiSettings) {
+    setAiSettings(next);
+    setDefaultProvider(next.default_provider);
+    setConfigsByProvider({
+      claude: toEditableConfigs(next.providers.claude.configs),
+      openai: toEditableConfigs(next.providers.openai.configs),
+      gemini: toEditableConfigs(next.providers.gemini.configs),
+      yescale: toEditableConfigs(next.providers.yescale.configs),
+    });
+  }
 
   async function saveAiSettings(e: React.FormEvent) {
     e.preventDefault();
@@ -40,23 +105,85 @@ export default function AdminDashboardPage() {
     try {
       const updated = await adminApi.updateAiSettings({
         default_provider: defaultProvider,
-        claude_api_key: claudeKey.trim() || undefined,
-        openai_api_key: openaiKey.trim() || undefined,
-        gemini_api_key: geminiKey.trim() || undefined,
-        yescale_api_key: yescaleKey.trim() || undefined,
+        claude_configs: toPayload(configsByProvider.claude),
+        openai_configs: toPayload(configsByProvider.openai),
+        gemini_configs: toPayload(configsByProvider.gemini),
+        yescale_configs: toPayload(configsByProvider.yescale),
       });
-      setAiSettings(updated);
-      setClaudeKey('');
-      setOpenaiKey('');
-      setGeminiKey('');
-      setYescaleKey('');
-      setAiSuccess('Đã lưu cấu hình AI cho TN viết bài.');
+      applyAiSettings(updated);
+      setAiSuccess('Đã lưu danh sách API key và model cho các provider.');
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setSavingAi(false);
     }
   }
+
+  function updateConfig(
+    provider: AiProviderName,
+    index: number,
+    patch: Partial<EditableProviderConfig>,
+  ) {
+    setConfigsByProvider((current) => ({
+      ...current,
+      [provider]: current[provider].map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item,
+      ),
+    }));
+  }
+
+  function addConfig(provider: AiProviderName) {
+    setConfigsByProvider((current) => ({
+      ...current,
+      [provider]: [
+        ...current[provider].filter((item) => item.source === 'admin'),
+        {
+          label: '',
+          model: DEFAULT_MODEL[provider],
+          api_key: '',
+          is_default: current[provider].filter((item) => item.source === 'admin').length === 0,
+          editable: true,
+          deletable: true,
+          source: 'admin',
+        },
+        ...current[provider].filter((item) => item.source !== 'admin'),
+      ],
+    }));
+  }
+
+  function deleteConfig(provider: AiProviderName, index: number) {
+    setConfigsByProvider((current) => {
+      const kept = current[provider].filter((_, itemIndex) => itemIndex !== index);
+      const adminOnly = kept.filter((item) => item.source === 'admin');
+      if (adminOnly.length > 0 && adminOnly.every((item) => !item.is_default)) {
+        adminOnly[0] = { ...adminOnly[0], is_default: true };
+      }
+      return {
+        ...current,
+        [provider]: [...adminOnly, ...kept.filter((item) => item.source !== 'admin')],
+      };
+    });
+  }
+
+  function markDefault(provider: AiProviderName, index: number) {
+    setConfigsByProvider((current) => ({
+      ...current,
+      [provider]: current[provider].map((item, itemIndex) =>
+        item.source === 'admin' ? { ...item, is_default: itemIndex === index } : item,
+      ),
+    }));
+  }
+
+  const providerCards = useMemo(
+    () =>
+      (['claude', 'openai', 'gemini', 'yescale'] as const).map((provider) => ({
+        provider,
+        label: PROVIDER_LABELS[provider],
+        status: aiSettings?.providers[provider],
+        configs: configsByProvider[provider],
+      })),
+    [aiSettings, configsByProvider],
+  );
 
   if (loading) {
     return (
@@ -76,7 +203,7 @@ export default function AdminDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Section 9 (RBAC) + Section 16 (audit). Chỉ user role=admin truy cập được.
+            Quản lý provider AI, danh sách API key và model dùng cho luồng outline/viết bài.
           </p>
         </div>
         <Button asChild>
@@ -113,39 +240,155 @@ export default function AdminDashboardPage() {
         <CardHeader>
           <CardTitle>Cấu hình AI viết bài</CardTitle>
           <CardDescription>
-            Chọn provider mặc định cho TN outline/viết bài. API key được mã hoá trong database.
+            Mỗi provider có thể lưu nhiều key-model. Bạn có thể đặt config mặc định, sửa model, thêm
+            key mới hoặc xoá config cũ.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={saveAiSettings} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-5">
-              <div className="space-y-2">
-                <label htmlFor="ai-provider" className="text-sm font-medium">
-                  Provider mặc định
-                </label>
-                <select
-                  id="ai-provider"
-                  className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                  value={defaultProvider}
-                  onChange={(e) => setDefaultProvider(e.target.value as AiProviderName)}
-                >
-                  <option value="claude">Claude</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="gemini">Gemini</option>
-                  <option value="yescale">Yescale</option>
-                </select>
-              </div>
-              <ProviderStatus label="Claude" status={aiSettings?.providers.claude} />
-              <ProviderStatus label="OpenAI" status={aiSettings?.providers.openai} />
-              <ProviderStatus label="Gemini" status={aiSettings?.providers.gemini} />
-              <ProviderStatus label="Yescale" status={aiSettings?.providers.yescale} />
+          <form onSubmit={saveAiSettings} className="space-y-6">
+            <div className="max-w-sm space-y-2">
+              <label htmlFor="ai-provider" className="text-sm font-medium">
+                Provider mặc định
+              </label>
+              <select
+                id="ai-provider"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={defaultProvider}
+                onChange={(e) => setDefaultProvider(e.target.value as AiProviderName)}
+              >
+                <option value="claude">Claude</option>
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+                <option value="yescale">Yescale</option>
+              </select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-              <SecretInput label="Claude API key" value={claudeKey} onChange={setClaudeKey} />
-              <SecretInput label="OpenAI API key" value={openaiKey} onChange={setOpenaiKey} />
-              <SecretInput label="Gemini API key" value={geminiKey} onChange={setGeminiKey} />
-              <SecretInput label="Yescale API key" value={yescaleKey} onChange={setYescaleKey} />
+            <div className="space-y-4">
+              {providerCards.map(({ provider, label, status, configs }) => (
+                <Card key={provider} className="border-dashed">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-lg">{label}</CardTitle>
+                        <CardDescription>
+                          {status?.configured
+                            ? `Đã cấu hình (${status.source})`
+                            : 'Chưa có key khả dụng'}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addConfig(provider)}
+                      >
+                        <Plus className="mr-2 h-4 w-4" /> Thêm key
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {configs.length === 0 ? (
+                      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                        Chưa có config nào.
+                      </div>
+                    ) : (
+                      configs.map((config, index) => (
+                        <div
+                          key={config.id ?? `${provider}-${index}`}
+                          className="rounded-lg border p-4"
+                        >
+                          <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_1.4fr_auto]">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Tên key</label>
+                              <Input
+                                value={config.label}
+                                onChange={(e) =>
+                                  updateConfig(provider, index, { label: e.target.value })
+                                }
+                                disabled={!config.editable}
+                                placeholder="Ví dụ: Team SEO 1"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Model</label>
+                              <select
+                                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                                value={config.model}
+                                onChange={(e) =>
+                                  updateConfig(provider, index, {
+                                    model: e.target.value as ProviderModel,
+                                  })
+                                }
+                                disabled={!config.editable}
+                              >
+                                {MODEL_OPTIONS[provider].map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {config.source === 'admin' ? 'API key mới / thay key' : 'API key'}
+                              </label>
+                              <Input
+                                type="password"
+                                value={config.api_key}
+                                onChange={(e) =>
+                                  updateConfig(provider, index, { api_key: e.target.value })
+                                }
+                                disabled={!config.editable}
+                                placeholder={
+                                  config.source === 'admin'
+                                    ? config.key_preview
+                                      ? `${config.key_preview} · để trống nếu giữ nguyên`
+                                      : 'Nhập API key'
+                                    : config.key_preview
+                                }
+                                autoComplete="off"
+                              />
+                            </div>
+                            <div className="flex items-end gap-2">
+                              <Button
+                                type="button"
+                                variant={config.is_default ? 'default' : 'outline'}
+                                size="sm"
+                                disabled={!config.editable}
+                                onClick={() => markDefault(provider, index)}
+                              >
+                                Mặc định
+                              </Button>
+                              {config.deletable ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => deleteConfig(provider, index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            <span>Model runtime: {modelLabel(provider, config.model)}</span>
+                            {config.key_preview ? <span>Key: {config.key_preview}</span> : null}
+                            {config.updated_at ? (
+                              <span>
+                                Cập nhật: {new Date(config.updated_at).toLocaleString('vi-VN')}
+                              </span>
+                            ) : null}
+                            {!config.editable ? (
+                              <span>Config từ biến môi trường, chỉ đọc.</span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
             {aiSuccess && <p className="text-sm text-emerald-700">{aiSuccess}</p>}
@@ -165,7 +408,7 @@ export default function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Phân bố plan</CardTitle>
-          <CardDescription>Active subscription / số user. Section 10.</CardDescription>
+          <CardDescription>Active subscription / số user.</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="divide-y rounded-md border text-sm">
@@ -194,44 +437,39 @@ export default function AdminDashboardPage() {
   );
 }
 
-function SecretInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">{label}</label>
-      <Input
-        type="password"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Dán key mới, để trống nếu giữ nguyên"
-        autoComplete="off"
-      />
-    </div>
-  );
+function toEditableConfigs(configs: AiProviderConfig[]): EditableProviderConfig[] {
+  if (configs.length > 0) {
+    return configs.map((config) => ({
+      id: config.id,
+      label: config.label,
+      model: config.model,
+      api_key: '',
+      is_default: config.is_default,
+      editable: config.editable,
+      deletable: config.deletable,
+      source: config.source,
+      key_preview: config.key_preview,
+      updated_at: config.updated_at,
+    }));
+  }
+  return [];
 }
 
-function ProviderStatus({
-  label,
-  status,
-}: {
-  label: string;
-  status?: { configured: boolean; source: 'admin' | 'env' | 'missing' };
-}) {
-  return (
-    <div className="rounded-md border p-3 text-sm">
-      <p className="font-medium">{label}</p>
-      <p className={status?.configured ? 'text-emerald-700' : 'text-amber-700'}>
-        {status?.configured ? `Đã cấu hình (${status.source})` : 'Chưa có key'}
-      </p>
-    </div>
-  );
+function toPayload(configs: EditableProviderConfig[]): AiProviderConfigInput[] {
+  return configs
+    .filter((config) => config.source === 'admin')
+    .map((config) => ({
+      id: config.id,
+      label: config.label.trim(),
+      model: config.model,
+      api_key: config.api_key.trim() || undefined,
+      is_default: config.is_default,
+    }))
+    .filter((config) => config.label.length > 0);
+}
+
+function modelLabel(provider: AiProviderName, model: ProviderModel): string {
+  return MODEL_OPTIONS[provider].find((option) => option.value === model)?.label ?? model;
 }
 
 function StatCard({ title, value, sub }: { title: string; value: number; sub: string }) {

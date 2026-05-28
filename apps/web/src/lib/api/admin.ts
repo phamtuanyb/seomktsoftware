@@ -55,11 +55,48 @@ export interface AdminStats {
 }
 
 export type AiProviderName = 'claude' | 'openai' | 'gemini' | 'yescale';
+export type ProviderModel =
+  | 'claude-sonnet-4'
+  | 'claude-haiku'
+  | 'gpt-4o'
+  | 'gpt-4o-mini'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.5-flash'
+  | 'yescale-gpt-4.1-mini';
+
+export interface AiProviderConfig {
+  id: string;
+  label: string;
+  model: ProviderModel;
+  model_label: string;
+  is_default: boolean;
+  configured: boolean;
+  source: 'admin' | 'env';
+  key_preview: string;
+  editable: boolean;
+  deletable: boolean;
+  updated_at: string | null;
+}
 
 export interface AiSettings {
   default_provider: AiProviderName;
-  providers: Record<AiProviderName, { configured: boolean; source: 'admin' | 'env' | 'missing' }>;
+  providers: Record<
+    AiProviderName,
+    {
+      configured: boolean;
+      source: 'admin' | 'env' | 'missing';
+      configs: AiProviderConfig[];
+    }
+  >;
   updated_at: string | null;
+}
+
+export interface AiProviderConfigInput {
+  id?: string;
+  label: string;
+  model: ProviderModel;
+  api_key?: string;
+  is_default?: boolean;
 }
 
 export interface ListUsersResponse {
@@ -71,13 +108,15 @@ export interface ListUsersResponse {
 export const adminApi = {
   stats: () => api.get<AdminStats>('/admin/stats'),
   getAiSettings: () => api.get<AiSettings>('/admin/ai-settings'),
-  updateAiSettings: (body: Partial<{
-    default_provider: AiProviderName;
-    claude_api_key: string;
-    openai_api_key: string;
-    gemini_api_key: string;
-    yescale_api_key: string;
-  }>) => api.patch<AiSettings>('/admin/ai-settings', body),
+  updateAiSettings: (
+    body: Partial<{
+      default_provider: AiProviderName;
+      claude_configs: AiProviderConfigInput[];
+      openai_configs: AiProviderConfigInput[];
+      gemini_configs: AiProviderConfigInput[];
+      yescale_configs: AiProviderConfigInput[];
+    }>,
+  ) => api.patch<AiSettings>('/admin/ai-settings', body),
 
   listUsers: (query?: {
     cursor?: string;

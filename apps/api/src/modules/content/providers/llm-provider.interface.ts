@@ -14,6 +14,14 @@ export type LlmModel =
   | 'yescale-gpt-4.1-mini'
   | 'stub';
 
+export type ProviderModel = Exclude<LlmModel, 'stub'>;
+export const PROVIDER_MODEL_OPTIONS = {
+  claude: ['claude-sonnet-4', 'claude-haiku'],
+  openai: ['gpt-4o', 'gpt-4o-mini'],
+  gemini: ['gemini-1.5-pro', 'gemini-1.5-flash'],
+  yescale: ['yescale-gpt-4.1-mini'],
+} as const satisfies Record<string, ProviderModel[]>;
+
 export interface LlmGenerateOptions {
   /** System prompt — for Claude, sent as `system`; for OpenAI, role:'system'. */
   system?: string;
@@ -103,6 +111,15 @@ export function resolveModel(model?: LlmModel): {
       // at the time of writing is claude-sonnet-4-6.
       return { providerKey: LLM_PROVIDER_CLAUDE, apiModel: 'claude-sonnet-4-6' };
   }
+}
+
+export function defaultModelForProvider(
+  provider: 'claude' | 'openai' | 'gemini' | 'yescale',
+): ProviderModel {
+  if (provider === 'openai') return 'gpt-4o';
+  if (provider === 'gemini') return 'gemini-1.5-pro';
+  if (provider === 'yescale') return 'yescale-gpt-4.1-mini';
+  return 'claude-sonnet-4';
 }
 
 /** Returns true when the env var looks like the .env.example placeholder. */

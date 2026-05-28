@@ -36,8 +36,9 @@ export class YescaleProvider implements LlmProvider {
   }
 
   async generate(opts: LlmGenerateOptions): Promise<LlmGenerateResult> {
-    const { apiModel } = resolveModel(opts.model ?? 'yescale-gpt-4.1-mini');
-    const key = await this.settings.getApiKey('yescale');
+    const runtime = await this.settings.getRuntimeConfig('yescale', opts.model);
+    const { apiModel } = resolveModel(runtime.model);
+    const key = runtime.apiKey;
     if (!key) return this.stubGenerate(opts, apiModel);
 
     try {
@@ -71,8 +72,9 @@ export class YescaleProvider implements LlmProvider {
   }
 
   async *generateStream(opts: LlmGenerateOptions): AsyncIterable<LlmStreamEvent> {
-    const { apiModel } = resolveModel(opts.model ?? 'yescale-gpt-4.1-mini');
-    const key = await this.settings.getApiKey('yescale');
+    const runtime = await this.settings.getRuntimeConfig('yescale', opts.model);
+    const { apiModel } = resolveModel(runtime.model);
+    const key = runtime.apiKey;
     if (!key) {
       yield* this.stubStream(opts, apiModel);
       return;
@@ -118,9 +120,10 @@ export class YescaleProvider implements LlmProvider {
   }
 
   private stubGenerate(opts: LlmGenerateOptions, apiModel: string): LlmGenerateResult {
-    const wantsArticle = /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
-      opts.prompt,
-    );
+    const wantsArticle =
+      /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
+        opts.prompt,
+      );
     const keyword =
       opts.prompt.match(/KEYWORD CHINH:\s*\n([^\n]{2,120})/i)?.[1]?.trim() ??
       opts.prompt.match(/keyword[^\n]*?["“']([^"”'\n]{2,80})["”']/i)?.[1]?.trim() ??
@@ -129,7 +132,10 @@ export class YescaleProvider implements LlmProvider {
     const content = wantsArticle ? stubArticleFor(keyword, target) : stubOutlineFor(keyword);
     return {
       content,
-      tokensUsed: { input: Math.ceil(opts.prompt.length / 4), output: Math.ceil(content.length / 4) },
+      tokensUsed: {
+        input: Math.ceil(opts.prompt.length / 4),
+        output: Math.ceil(content.length / 4),
+      },
       modelUsed: `${apiModel}-stub`,
       costUsd: 0,
       isStub: true,

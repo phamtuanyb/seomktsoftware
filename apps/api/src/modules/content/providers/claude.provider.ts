@@ -54,9 +54,9 @@ export class ClaudeProvider implements LlmProvider {
   }
 
   async generate(opts: LlmGenerateOptions): Promise<LlmGenerateResult> {
-    const { apiModel } = resolveModel(opts.model);
-
-    const key = await this.settings.getApiKey('claude');
+    const runtime = await this.settings.getRuntimeConfig('claude', opts.model);
+    const { apiModel } = resolveModel(runtime.model);
+    const key = runtime.apiKey;
     if (!key) {
       return this.stubGenerate(opts, apiModel);
     }
@@ -96,9 +96,9 @@ export class ClaudeProvider implements LlmProvider {
   }
 
   async *generateStream(opts: LlmGenerateOptions): AsyncIterable<LlmStreamEvent> {
-    const { apiModel } = resolveModel(opts.model);
-
-    const key = await this.settings.getApiKey('claude');
+    const runtime = await this.settings.getRuntimeConfig('claude', opts.model);
+    const { apiModel } = resolveModel(runtime.model);
+    const key = runtime.apiKey;
     if (!key) {
       yield* this.stubStream(opts, apiModel);
       return;
@@ -159,9 +159,10 @@ export class ClaudeProvider implements LlmProvider {
     // (not the word "outline" — TN4 prompt embeds the input outline) so stub
     // mode picks the right fixture.
     const wantsRewrite = /NỘI DUNG GỐC|Body cũ \(để tham khảo/i.test(opts.prompt);
-    const wantsArticle = /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
-      opts.prompt,
-    );
+    const wantsArticle =
+      /Markdown output only|Bat dau viet bai|Viet mot bai SEO|Bắt đầu viết|Viết một bài viết SEO/i.test(
+        opts.prompt,
+      );
     const keyword = this.guessKeyword(opts.prompt);
     let content: string;
     if (wantsRewrite) {
