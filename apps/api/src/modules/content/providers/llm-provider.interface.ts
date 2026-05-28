@@ -12,6 +12,10 @@ export type LlmModel =
   | 'gemini-1.5-pro'
   | 'gemini-1.5-flash'
   | 'yescale-gpt-4.1-mini'
+  | 'yescale-gpt-5.2'
+  | 'yescale-gpt-5.4'
+  | 'yescale-gpt-5.4-mini'
+  | 'yescale-gpt-5.5'
   | 'stub';
 
 export type ProviderModel = Exclude<LlmModel, 'stub'>;
@@ -19,7 +23,13 @@ export const PROVIDER_MODEL_OPTIONS = {
   claude: ['claude-sonnet-4', 'claude-haiku'],
   openai: ['gpt-4o', 'gpt-4o-mini'],
   gemini: ['gemini-1.5-pro', 'gemini-1.5-flash'],
-  yescale: ['yescale-gpt-4.1-mini'],
+  yescale: [
+    'yescale-gpt-4.1-mini',
+    'yescale-gpt-5.2',
+    'yescale-gpt-5.4',
+    'yescale-gpt-5.4-mini',
+    'yescale-gpt-5.5',
+  ],
 } as const satisfies Record<string, ProviderModel[]>;
 
 export interface LlmGenerateOptions {
@@ -103,6 +113,14 @@ export function resolveModel(model?: LlmModel): {
       return { providerKey: LLM_PROVIDER_GEMINI, apiModel: 'gemini-1.5-pro' };
     case 'yescale-gpt-4.1-mini':
       return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-4.1-mini' };
+    case 'yescale-gpt-5.2':
+      return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-5.2' };
+    case 'yescale-gpt-5.4':
+      return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-5.4' };
+    case 'yescale-gpt-5.4-mini':
+      return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-5.4-mini' };
+    case 'yescale-gpt-5.5':
+      return { providerKey: LLM_PROVIDER_YESCALE, apiModel: 'gpt-5.5' };
     case 'claude-haiku':
       return { providerKey: LLM_PROVIDER_CLAUDE, apiModel: 'claude-haiku-4-5-20251001' };
     case 'claude-sonnet-4':

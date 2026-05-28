@@ -62,7 +62,11 @@ export type ProviderModel =
   | 'gpt-4o-mini'
   | 'gemini-1.5-pro'
   | 'gemini-1.5-flash'
-  | 'yescale-gpt-4.1-mini';
+  | 'yescale-gpt-4.1-mini'
+  | 'yescale-gpt-5.2'
+  | 'yescale-gpt-5.4'
+  | 'yescale-gpt-5.4-mini'
+  | 'yescale-gpt-5.5';
 
 export interface AiProviderConfig {
   id: string;

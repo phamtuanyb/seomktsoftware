@@ -49,7 +49,13 @@ const MODEL_OPTIONS: Record<AiProviderName, Array<{ value: ProviderModel; label:
     { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
     { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
   ],
-  yescale: [{ value: 'yescale-gpt-4.1-mini', label: 'Yescale GPT-4.1 Mini' }],
+  yescale: [
+    { value: 'yescale-gpt-4.1-mini', label: 'Yescale GPT-4.1 Mini' },
+    { value: 'yescale-gpt-5.2', label: 'Yescale GPT-5.2' },
+    { value: 'yescale-gpt-5.4', label: 'Yescale GPT-5.4' },
+    { value: 'yescale-gpt-5.4-mini', label: 'Yescale GPT-5.4 Mini' },
+    { value: 'yescale-gpt-5.5', label: 'Yescale GPT-5.5' },
+  ],
 };
 
 const DEFAULT_MODEL: Record<AiProviderName, ProviderModel> = {
