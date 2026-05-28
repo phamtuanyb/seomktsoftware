@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { CryptoService } from '../../common/services/crypto.service';
 import {
@@ -228,12 +229,12 @@ export class AiSettingsService implements OnModuleInit {
       where: { key: `ai.${provider}.configs` },
       create: {
         key: `ai.${provider}.configs`,
-        valueJson: { configs: meta },
+        valueJson: { configs: meta } as Prisma.InputJsonValue,
         encryptedValue: this.crypto.encrypt(JSON.stringify(secrets)),
         updatedBy: adminId,
       },
       update: {
-        valueJson: { configs: meta },
+        valueJson: { configs: meta } as Prisma.InputJsonValue,
         encryptedValue: this.crypto.encrypt(JSON.stringify(secrets)),
         updatedBy: adminId,
       },
