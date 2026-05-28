@@ -57,6 +57,7 @@ OUTPUT BAT BUOC:
 - Bat dau truc tiep bang "# H1".
 - Dung dung cau truc H2/H3 theo outline da cung cap. Khong ep moi H2 phai co H3.
 - Khong tao metadata rieng, khong chen ghi chu noi bo, khong noi "duoi day la".
+- Bai viet phai doc nhu mot bai SEO hoan chinh da san sang dua vao CMS, khong phai ban nhap y tuong.
 
 DNA NOI DUNG:
 1. Viet cho nguoi doc tren dien thoai: cau 10-18 tu la chinh, doan 2-4 cau, moi doan khong qua 60 tu.
@@ -67,6 +68,8 @@ DNA NOI DUNG:
 6. SEO tu nhien: keyword chinh xuat hien trong intro, mot vai H2/body va ket luan; khong nhoi tu khoa.
 7. LSI keywords phai duoc cai tu nhien, khong liet ke may moc.
 8. Neu thieu du lieu, dung cum tu can than nhu "thuong", "trong nhieu truong hop", "nen kiem tra lai" thay vi bia so lieu.
+9. Chu y title va cac heading phai co suc hut, de tang CTR va giu nguoi doc o lai.
+10. Co the dung so lieu, 5W1H, so sanh, tranh luan, case thuc te, cau chuyen ngan neu hop chu de.
 
 CHAT LUONG CAN DAT:
 - Doc xong moi H2, nguoi doc phai co them mot quyet dinh hoac mot hanh dong cu the.
@@ -104,10 +107,15 @@ YEU CAU THUC THI:
 7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA cua brand voice neu co.
 8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
 9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
-10. Them FAQ neu outline co FAQ hoac neu intent can giai dap cau hoi truoc khi mua/dung.
-11. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
-12. Neu den gan cuoi ma bai chua dat ${minWords} tu, tiep tuc mo rong cac H2 mong bang vi du, checklist, loi thuong gap, bang so sanh hoac case thuc te.
-13. Chi tra ve Markdown thuan, bat dau ngay bang "#".
+10. Bai viet phai co TOC/muc luc gan dau bai bang danh sach lien ket hoac danh sach thuong de nguoi doc scan nhanh.
+11. Trong bai nen co it nhat 1 bang Markdown va 1 vi tri de nhung video neu chu de phu hop. Neu khong co link video that, viet mot dong goi y video can nhung.
+12. Trong bai phai co goi y cho it nhat 3 hinh anh minh hoa phu hop voi noi dung. Co the dat bang dong nghieng dang *Goi y hinh anh:* ... tai dung vi tri.
+13. Phai co internal link va external link o dang Markdown. External link chi tro toi nguon uy tin, khong tro doi thu, va uu tien ghi chu (nofollow) neu la link ngoai khong thuoc doanh nghiep.
+14. Tu khoa chinh va tu khoa phu phai duoc phan bo tu nhien o dau, giua va cuoi bai. Tranh lap lai mot cum tu qua day.
+15. Neu co anh trong bai, alt text/goi y alt phai huong den nguoi dung va nen chua keyword chinh hoac bien the hop ly.
+16. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
+17. Neu den gan cuoi ma bai chua dat ${minWords} tu, tiep tuc mo rong cac H2 mong bang vi du, checklist, loi thuong gap, bang so sanh hoac case thuc te.
+18. Chi tra ve Markdown thuan, bat dau ngay bang "#".
 
 QUY TAC THEO FORMAT:
 ${formatRules}

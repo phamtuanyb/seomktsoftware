@@ -42,6 +42,7 @@ TRIET LY TAO OUTLINE:
 4. Neu co du lieu brand voice hoac bai mau tu he thong, hay noi theo nhip viet va cach dat van de do.
 5. Khong copy heading cua SERP. Chi hoc y dinh tim kiem va cac gap can bo sung.
 6. Uu tien outline ngan. Chi giu lai nhung muc that su can de viet bai.
+7. Truoc khi ra outline, phai ngam xac dinh keyword chinh, keyword phu, bien the tu dong nghia va search intent cua nguoi dung.
 
 OUTPUT BAT BUOC:
 - Chi tra ve JSON thuan parse duoc bang JSON.parse().
@@ -92,6 +93,8 @@ YEU CAU OUTLINE:
 12. Can the hien su lien ket voi phong cach MKT va brand voice neu co, nhung van uu tien do ro rang cua outline.
 13. Khong copy nguyen van heading cua SERP.
 14. Muc tieu la mot outline ngan, de duyet nhanh trong admin, khong phai mot ban draft qua chi tiet.
+15. Heading phai duoc lam moi lai bang ngon ngu rieng, co the chen tu khoa phu, bien the tu khoa, nhung khong duoc nghe may moc.
+16. Neu nhan thay SERP dang on top theo mot angle ro, co the dua ra mot lua chon tham khao nhung van uu tien bai moi co diem nhin rieng.
 
 SCHEMA JSON BAT BUOC:
 {
