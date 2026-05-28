@@ -229,12 +229,12 @@ export class AiSettingsService implements OnModuleInit {
       where: { key: `ai.${provider}.configs` },
       create: {
         key: `ai.${provider}.configs`,
-        valueJson: { configs: meta } as Prisma.InputJsonValue,
+        valueJson: { configs: meta } as unknown as Prisma.InputJsonValue,
         encryptedValue: this.crypto.encrypt(JSON.stringify(secrets)),
         updatedBy: adminId,
       },
       update: {
-        valueJson: { configs: meta } as Prisma.InputJsonValue,
+        valueJson: { configs: meta } as unknown as Prisma.InputJsonValue,
         encryptedValue: this.crypto.encrypt(JSON.stringify(secrets)),
         updatedBy: adminId,
       },
