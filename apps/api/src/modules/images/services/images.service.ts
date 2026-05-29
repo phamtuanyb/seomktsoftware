@@ -62,6 +62,11 @@ export interface GenerateForArticleResponse extends GenerateImageResponse {
   featured_image_id: string | null;
 }
 
+export interface GenerateFromPromptSuggestion {
+  prompt: string;
+  alt_text?: string;
+}
+
 /**
  * Section 8 TN6 — pipeline orchestrator.
  *
@@ -269,6 +274,94 @@ export class ImagesService {
     return {
       article_id: article.id,
       featured_image_id: featuredId,
+      images: records,
+      stats: {
+        count: records.length,
+        cost_usd: totalCost,
+        duration_ms: Date.now() - started,
+        provider_stub: providerStub,
+        storage_stub: storageStub,
+        safety_method: 'rule',
+      },
+    };
+  }
+
+  async generateFromPromptSuggestions(
+    args: {
+      article_id: string;
+      prompts: GenerateFromPromptSuggestion[];
+      style?: ImageStyle;
+      model?: ImageModel;
+    },
+    userId: string,
+  ): Promise<GenerateImageResponse> {
+    const started = Date.now();
+    const article = await this.prisma.article.findFirst({
+      where: { id: args.article_id, userId, deletedAt: null },
+    });
+    if (!article) {
+      throw new NotFoundException({
+        code: ErrorCode.RESOURCE_NOT_FOUND,
+        message: 'Khong tim thay bai viet',
+      });
+    }
+
+    const style: ImageStyle = args.style ?? 'mkt-brand';
+    const model = args.model ?? 'flux-schnell';
+    const prompts = args.prompts
+      .map((item) => ({
+        prompt: item.prompt.trim(),
+        alt_text: item.alt_text?.trim() || undefined,
+      }))
+      .filter((item) => item.prompt.length >= 5)
+      .slice(0, 6);
+
+    const provider = this.pickProvider(model);
+    let storageStub = !this.storage.available;
+    let totalCost = 0;
+    let providerStub = false;
+    const records: ImageRecord[] = [];
+
+    for (const item of prompts) {
+      const enrichedPrompt = `${item.prompt}. Minh hoa cho bai viet "${article.title}"${
+        article.targetKeyword ? `, xoay quanh chu de ${article.targetKeyword}` : ''
+      }`;
+      const safety = await this.safety.check(enrichedPrompt);
+      if (!safety.safe) {
+        this.logger.warn(`Skipping unsafe prompt suggestion: ${safety.reason}`);
+        continue;
+      }
+
+      const augmented = `${safety.cleaned_prompt}. ${STYLE_PRESETS[style]}`.slice(0, 1000);
+      const genResult = await provider.generate({
+        prompt: augmented,
+        style,
+        aspectRatio: '16:9',
+        count: 1,
+        model,
+      });
+      totalCost += genResult.cost_usd;
+      providerStub = providerStub || genResult.is_stub;
+
+      for (const img of genResult.images) {
+        const record = await this.processSingleImage({
+          userId,
+          img,
+          prompt: augmented,
+          style,
+          aspectRatio: '16:9',
+          modelUsed: genResult.model_used,
+          cost: genResult.cost_usd,
+          article: { id: article.id, title: article.title, keyword: article.targetKeyword },
+          variant: 'in-content',
+          altOverride: item.alt_text,
+        });
+        records.push(record);
+        if (!record.url.startsWith('stub://')) storageStub = false;
+      }
+    }
+
+    return {
       images: records,
       stats: {
         count: records.length,

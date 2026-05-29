@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LlmModule } from '../llm/llm.module';
 import { AuditModule } from '../audit/audit.module';
+import { ImagesModule } from '../images/images.module';
 import { ContentController } from './content.controller';
 import { SerpService } from './services/serp.service';
 import { OutlineService } from './services/outline.service';
@@ -17,7 +18,7 @@ import { ContentBatchProcessor } from './workers/content-batch.processor';
 @Module({
   // LlmModule owns the Claude/OpenAI providers + registry.
   // AuditModule provides the 12-rule AuditService that TN4 calls after post-process.
-  imports: [LlmModule, AuditModule],
+  imports: [LlmModule, AuditModule, ImagesModule],
   controllers: [ContentController],
   providers: [
     SerpService,

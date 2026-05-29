@@ -4,6 +4,7 @@ import { ErrorCode } from '@mkt-seo/shared';
 import { uuidv7 } from 'uuidv7';
 import { PrismaService } from '../../../common/services/prisma.service';
 import { EventBusService } from '../../../common/services/event-bus.service';
+import { QuotaService } from '../../../common/services/quota.service';
 import { AuditService } from '../../audit/services/audit.service';
 import type { RuleResult } from '../../audit/rules/base.rule';
 import { LlmRegistry } from '../providers/llm-registry.service';
@@ -22,6 +23,7 @@ import {
 import { type GenerateArticleDto } from '../dto/generate-article.dto';
 import { type ListArticlesQueryDto, type UpdateArticleDto } from '../dto/update-article.dto';
 import { marked } from 'marked';
+import { ImagesService } from '../../images/services/images.service';
 
 type ScoreBreakdown = Record<string, RuleResult>;
 
@@ -83,6 +85,8 @@ export class ArticleService {
     private readonly llm: LlmRegistry,
     private readonly postProcess: ArticlePostProcessService,
     private readonly audit: AuditService,
+    private readonly images: ImagesService,
+    private readonly quotas: QuotaService,
     private readonly brandVoiceSimilarity: BrandVoiceSimilarityService,
     private readonly eventBus: EventBusService,
   ) {}
@@ -396,6 +400,35 @@ export class ArticleService {
       },
     });
 
+    const imageSuggestions = this.extractImageSuggestions(processed.markdownProcessed);
+    if (imageSuggestions.length > 0) {
+      try {
+        const generatedImages = await this.generateInlineImagesForArticle(
+          articleId,
+          userId,
+          imageSuggestions,
+        );
+        if (generatedImages.length > 0) {
+          const withImages = this.embedGeneratedImages({
+            markdown: processed.markdownProcessed,
+            html: processed.html,
+            suggestions: imageSuggestions,
+            images: generatedImages,
+          });
+          await this.prisma.article.update({
+            where: { id: articleId },
+            data: {
+              contentMarkdown: withImages.markdown,
+              content: withImages.html,
+              featuredImageId: generatedImages[0]?.id ?? undefined,
+            },
+          });
+        }
+      } catch (err) {
+        this.logger.warn(`Auto image generation skipped for article ${articleId}: ${(err as Error).message}`);
+      }
+    }
+
     await this.eventBus.emit('article.completed', {
       article_id: articleId,
       user_id: userId,
@@ -478,6 +511,95 @@ export class ArticleService {
         },
       },
     };
+  }
+
+  private extractImageSuggestions(markdown: string): Array<{
+    lineIndex: number;
+    rawLine: string;
+    prompt: string;
+    altText: string;
+  }> {
+    const lines = markdown.split('\n');
+    const suggestions: Array<{ lineIndex: number; rawLine: string; prompt: string; altText: string }> = [];
+    const pattern =
+      /^\s*(?:[-*]\s*)?(?:\*)?(?:Gợi ý hình ảnh|Goi y hinh anh)\s*:\s*(.+?)(?:\*)?\s*$/iu;
+
+    lines.forEach((line, index) => {
+      const match = pattern.exec(line);
+      const prompt = match?.[1]?.trim();
+      if (!prompt) return;
+      suggestions.push({
+        lineIndex: index,
+        rawLine: line,
+        prompt,
+        altText: this.sanitizeAltText(prompt),
+      });
+    });
+
+    return suggestions.slice(0, 6);
+  }
+
+  private async generateInlineImagesForArticle(
+    articleId: string,
+    userId: string,
+    suggestions: Array<{ prompt: string; altText: string }>,
+  ) {
+    const quota = await this.quotas.checkQuota(userId, 'images', 1);
+    if (!quota.allowed || quota.remaining <= 0) {
+      this.logger.warn(`User ${userId} has no image quota left; skipping inline article images`);
+      return [];
+    }
+
+    const allowedCount = quota.unlimited
+      ? suggestions.length
+      : Math.max(0, Math.min(suggestions.length, quota.remaining));
+    if (allowedCount === 0) return [];
+
+    const result = await this.images.generateFromPromptSuggestions(
+      {
+        article_id: articleId,
+        prompts: suggestions.slice(0, allowedCount).map((item) => ({
+          prompt: item.prompt,
+          alt_text: item.altText,
+        })),
+      },
+      userId,
+    );
+
+    if (result.images.length > 0) {
+      await this.quotas.consumeQuota(userId, 'images', result.images.length);
+    }
+    return result.images;
+  }
+
+  private embedGeneratedImages(args: {
+    markdown: string;
+    html: string;
+    suggestions: Array<{ lineIndex: number; rawLine: string; prompt: string; altText: string }>;
+    images: Array<{ id: string; url: string; alt_text: string | null }>;
+  }): { markdown: string; html: string } {
+    const lines = args.markdown.split('\n');
+    args.suggestions.forEach((suggestion, index) => {
+      const image = args.images[index];
+      if (!image) return;
+      const altText = image.alt_text?.trim() || suggestion.altText;
+      lines[suggestion.lineIndex] =
+        `![${altText}](${image.url})\n` +
+        `*${altText}*`;
+    });
+
+    const markdown = lines.join('\n');
+    const schemaPrefix = args.html.match(/^(?:<script[\s\S]*?<\/script>\s*)+/i)?.[0] ?? '';
+    const html = `${schemaPrefix}${marked.parse(markdown, { async: false, gfm: true }) as string}`;
+    return { markdown, html };
+  }
+
+  private sanitizeAltText(value: string): string {
+    return value
+      .replace(/\s+/g, ' ')
+      .replace(/[.*_`#>[\]()]/g, '')
+      .trim()
+      .slice(0, 180);
   }
 
   // ----- Helpers -----
