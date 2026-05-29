@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ErrorCode } from '@mkt-seo/shared';
 import { uuidv7 } from 'uuidv7';
 import { PrismaService } from '../../../common/services/prisma.service';
@@ -360,6 +361,17 @@ export class ArticleService {
     // Persist.
     const articleId = uuidv7();
     const slug = this.toSlug(dto.outline.h1);
+    const metadata = {
+      tokens_used: finishMeta.tokensUsed,
+      lsi_keywords: processed.lsi_keywords,
+      keyword_count: processed.keyword_count,
+      keyword_density: processed.keyword_density,
+      enable_schema_markup: enableSchemaMarkup,
+      is_stub: finishMeta.isStub ?? !provider.available,
+      audit_prioritized: auditReport.prioritized,
+      brand_voice_similarity: brandVoiceSimilarity,
+    } as unknown as Prisma.InputJsonValue;
+
     await this.prisma.article.create({
       data: {
         id: articleId,
@@ -380,16 +392,7 @@ export class ArticleService {
         brandVoiceId: brandVoice ? dto.brand_voice_id : null,
         aiModelUsed: provider.name + ':' + (dto.model ?? 'default'),
         aiCostUsd: finishMeta.costUsd,
-        metadataJson: {
-          tokens_used: finishMeta.tokensUsed,
-          lsi_keywords: processed.lsi_keywords,
-          keyword_count: processed.keyword_count,
-          keyword_density: processed.keyword_density,
-          enable_schema_markup: enableSchemaMarkup,
-          is_stub: finishMeta.isStub ?? !provider.available,
-          audit_prioritized: auditReport.prioritized,
-          brand_voice_similarity: brandVoiceSimilarity,
-        },
+        metadataJson: metadata,
       },
     });
 
