@@ -55,8 +55,8 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
           <div>
             <CardTitle>TN3 — AI Outline Generator</CardTitle>
             <CardDescription>
-              Phan tich top 5 SERP roi sinh outline gon hon: Meta Title, Meta Description, H1,
-              H2/H3 du dung de duyet truoc khi viet.
+              Phân tích top 5 SERP rồi sinh outline gọn hơn: Meta Title, Meta Description, H1,
+              H2/H3 đủ dùng để duyệt trước khi viết.
             </CardDescription>
           </div>
         </div>
@@ -65,7 +65,7 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="keyword">Keyword chinh</Label>
+            <Label htmlFor="keyword">Keyword chính</Label>
             <Input
               id="keyword"
               required
@@ -73,13 +73,13 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
               maxLength={255}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="VD: SEO local cho doanh nghiep nho"
+              placeholder="VD: SEO local cho doanh nghiệp nhỏ"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="intent">Intent (de trong neu muon tu suy)</Label>
+              <Label htmlFor="intent">Intent (để trống nếu muốn tự suy)</Label>
               <Select
                 id="intent"
                 value={intent}
@@ -94,7 +94,7 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
                   )
                 }
               >
-                <option value="">Tu suy</option>
+                <option value="">Tự suy</option>
                 <option value="info">Info</option>
                 <option value="commercial">Commercial</option>
                 <option value="transactional">Transactional</option>
@@ -121,7 +121,7 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="words">So tu muc tieu</Label>
+              <Label htmlFor="words">Số từ mục tiêu</Label>
               <Input
                 id="words"
                 type="number"
@@ -135,14 +135,14 @@ export function OutlineForm({ onGenerated }: OutlineFormProps) {
           </div>
 
           {error && (
-            <Textarea readOnly className="text-sm text-destructive" value={`Loi: ${error}`} />
+            <Textarea readOnly className="text-sm text-destructive" value={`Lỗi: ${error}`} />
           )}
 
           <Button type="submit" disabled={loading || keyword.trim().length < 2}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Dang phan tich SERP...
+                Đang phân tích SERP...
               </>
             ) : (
               <>

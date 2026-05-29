@@ -145,7 +145,7 @@ keyword 3`}
               />
             </div>
 
-            {error && <Textarea readOnly className="text-sm text-destructive" value={`Loi: ${error}`} />}
+            {error && <Textarea readOnly className="text-sm text-destructive" value={`Lỗi: ${error}`} />}
 
             <div className="flex flex-wrap gap-3">
               <Button type="submit" disabled={loading || !keywordsText.trim()}>

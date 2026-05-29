@@ -126,9 +126,12 @@ H2: ...
             />
           </div>
 
-          {error && <Textarea readOnly className="text-sm text-destructive" value={`Loi: ${error}`} />}
+          {error && <Textarea readOnly className="text-sm text-destructive" value={`Lỗi: ${error}`} />}
 
-          <Button type="submit" disabled={loading || keyword.trim().length < 2 || rawOutline.trim().length < 10}>
+          <Button
+            type="submit"
+            disabled={loading || keyword.trim().length < 2 || rawOutline.trim().length < 10}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

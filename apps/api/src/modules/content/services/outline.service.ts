@@ -90,7 +90,7 @@ export class OutlineService {
       } catch (secondErr) {
         throw new BadGatewayException({
           code: ErrorCode.AI_PROVIDER_ERROR,
-          message: 'AI khong tra ve JSON dung schema sau 2 lan thu',
+          message: 'AI không trả về JSON đúng schema sau 2 lần thử',
           details: { reason: (secondErr as Error).message },
         });
       }
@@ -270,7 +270,7 @@ export class OutlineService {
     if (cleanedSections.length === 0) {
       throw new BadRequestException({
         code: ErrorCode.VALIDATION_ERROR,
-        message: 'Outline nhap tay khong hop le. Can it nhat 1 H2 hoac 1 dong H2: ...',
+        message: 'Outline nhập tay không hợp lệ. Cần ít nhất 1 H2 hoặc 1 dòng H2: ...',
       });
     }
 
@@ -327,9 +327,9 @@ export class OutlineService {
   }
 
   private fitMetaDescription(keyword: string, h1: string): string {
-    const base = `${keyword} - ${h1}. Xem outline gon, dung intent va san sang viet bai chuan SEO.`;
+    const base = `${keyword} - ${h1}. Xem outline gọn, đúng intent và sẵn sàng viết bài chuẩn SEO.`;
     if (base.length >= 120 && base.length <= 165) return base;
     if (base.length > 165) return `${base.slice(0, 162).trimEnd()}...`;
-    return `${base} Co mo bai, than bai, ket bai va CTA ro rang cho nguoi viet trien khai ngay.`;
+    return `${base} Có mở bài, thân bài, kết bài và CTA rõ ràng cho người viết triển khai ngay.`;
   }
 }

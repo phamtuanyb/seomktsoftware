@@ -29,7 +29,6 @@ export function ArticleEditor({ article }: ArticleEditorProps) {
     immediatelyRender: false,
   });
 
-  // Re-sync when the article changes (e.g. user re-generates).
   useEffect(() => {
     if (editor && article.content_html) {
       editor.commands.setContent(article.content_html);
@@ -91,8 +90,6 @@ export function ArticleEditor({ article }: ArticleEditorProps) {
               </p>
               <ul className="mt-1 space-y-1 text-xs">
                 {Object.entries(article.content_score_breakdown).map(([rule, val]) => {
-                  // The breakdown now follows the 12-rule TN7 shape — status
-                  // is "good" | "warning" | "fail", message has a human note.
                   const v = val as {
                     score: number;
                     status?: 'good' | 'warning' | 'fail';

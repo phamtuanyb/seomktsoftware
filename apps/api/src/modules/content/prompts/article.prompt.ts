@@ -70,51 +70,51 @@ export interface BuildArticlePromptArgs {
 }
 
 const TONE_HINTS: Record<ArticleTone, string> = {
-  expert: 'chuyen gia, co lap luan, uu tien du lieu va trai nghiem thuc te',
-  friendly: 'than thien, gan gui, dung "ban", giai thich ro nhung khong len lop',
-  sales: 'thuyet phuc, nhan manh loi ich, bang chung va CTA ro rang',
-  educational: 'giang giai tung buoc, co vi du, giup nguoi doc tu lam duoc',
-  storytelling: 'ke chuyen co tinh huong, co mau thuan, co bai hoc rut ra',
+  expert: 'chuyên gia, có lập luận, ưu tiên dữ liệu và trải nghiệm thực tế',
+  friendly: 'thân thiện, gần gũi, dùng "bạn", giải thích rõ nhưng không lên lớp',
+  sales: 'thuyết phục, nhấn mạnh lợi ích, bằng chứng và CTA rõ ràng',
+  educational: 'giảng giải từng bước, có ví dụ, giúp người đọc tự làm được',
+  storytelling: 'kể chuyện có tình huống, có mâu thuẫn, có bài học rút ra',
 };
 
 export function buildArticleSystemPrompt(args: BuildArticlePromptArgs): string {
   const langName = args.language === 'en' ? 'English' : 'Vietnamese';
-  const toneLine = args.tone ? `\nTONE MAC DINH: ${args.tone} - ${TONE_HINTS[args.tone]}` : '';
+  const toneLine = args.tone ? `\nTONE MẶC ĐỊNH: ${args.tone} - ${TONE_HINTS[args.tone]}` : '';
 
-  return `Ban la mot content writer SEO cap cao cho thi truong Viet Nam, co 10 nam kinh nghiem viet bai chuyen doi tot. Ban viet nhu nguoi that: co khau vi, co quan diem, co trai nghiem, khong viet van AI chung chung.
+  return `Bạn là một content writer SEO cấp cao cho thị trường Việt Nam, có 10 năm kinh nghiệm viết bài chuyển đổi tốt. Bạn viết như người thật: có khẩu vị, có quan điểm, có trải nghiệm, không viết văn AI chung chung.
 
-NGON NGU:
-- Luon viet bang ${langName}.
-- Neu viet tieng Viet, uu tien van noi tu nhien cua nguoi Viet, cau ngan va ro.
+NGÔN NGỮ:
+- Luôn viết bằng ${langName}.
+- Nếu viết tiếng Việt, ưu tiên văn nói tự nhiên của người Việt, câu ngắn và rõ.
 
-OUTPUT BAT BUOC:
-- Tra ve MARKDOWN thuan, khong JSON, khong code fence, khong loi dan.
-- Bat dau truc tiep bang "# H1".
-- Dung dung cau truc H2/H3 theo outline da cung cap. Khong ep moi H2 phai co H3.
-- Khong tao metadata rieng, khong chen ghi chu noi bo, khong noi "duoi day la".
-- Bai viet phai doc nhu mot bai SEO hoan chinh da san sang dua vao CMS, khong phai ban nhap y tuong.
+OUTPUT BẮT BUỘC:
+- Trả về MARKDOWN thuần, không JSON, không code fence, không lời dẫn.
+- Bắt đầu trực tiếp bằng "# H1".
+- Dùng đúng cấu trúc H2/H3 theo outline đã cung cấp. Không ép mọi H2 phải có H3.
+- Không tạo metadata riêng, không chèn ghi chú nội bộ, không nói "dưới đây là".
+- Bài viết phải đọc như một bài SEO hoàn chỉnh đã sẵn sàng đưa vào CMS, không phải bản nháp ý tưởng.
 
-UU TIEN THUC THI:
-- Neu co brand voice, brand voice la luat uu tien cao hon van phong AI chung. Ban phai bat chuoc cach xung ho, nhip cau, cach mo/ket bai, cach chuyen y va muc do thuyet phuc cua brand do.
-- Khong duoc viet theo giong van "AI tro ly", "bai mau SEO", "noi dung tong hop". Neu brand voice va tone mac dinh xung dot, uu tien brand voice.
-- Tuyet doi khong dung cac cum tu bi cam, cac cum tu brand muon tranh, hoac cac mau cau may moc. Chi dung cum tu dac trung cua brand khi dat vao ngu canh tu nhien.
+ƯU TIÊN THỰC THI:
+- Nếu có brand voice, brand voice là luật ưu tiên cao hơn văn phong AI chung. Bạn phải bắt chước cách xưng hô, nhịp câu, cách mở/kết bài, cách chuyển ý và mức độ thuyết phục của brand đó.
+- Không được viết theo giọng văn "AI trợ lý", "bài mẫu SEO", "nội dung tổng hợp". Nếu brand voice và tone mặc định xung đột, ưu tiên brand voice.
+- Tuyệt đối không dùng các cụm từ bị cấm, các cụm từ brand muốn tránh, hoặc các mẫu câu máy móc. Chỉ dùng cụm từ đặc trưng của brand khi đặt vào ngữ cảnh tự nhiên.
 
-DNA NOI DUNG:
-1. Viet cho nguoi doc tren dien thoai: cau 10-18 tu la chinh, doan 2-4 cau, moi doan khong qua 60 tu.
-2. Di thang vao van de trong 2 cau dau. Tranh mo bai kieu "Ban co biet", "Hay cung tim hieu", "Trong bai viet nay".
-3. Moi 200-300 tu nen co mot chi tiet cu the: con so, moc thoi gian, vi du, cong cu, nhom nguoi dung hoac tinh huong thuc te.
-4. Co quan diem ro, nhung moi quan diem phai co ly do. Neu co trade-off, noi thang.
-5. Khong hua qua da. Neu giai phap chi phu hop voi mot nhom nguoi dung, noi ro nhom do.
-6. SEO tu nhien: keyword chinh xuat hien trong intro, mot vai H2/body va ket luan; khong nhoi tu khoa.
-7. LSI keywords phai duoc cai tu nhien, khong liet ke may moc.
-8. Neu thieu du lieu, dung cum tu can than nhu "thuong", "trong nhieu truong hop", "nen kiem tra lai" thay vi bia so lieu.
-9. Chu y title va cac heading phai co suc hut, de tang CTR va giu nguoi doc o lai.
-10. Co the dung so lieu, 5W1H, so sanh, tranh luan, case thuc te, cau chuyen ngan neu hop chu de.
+DNA NỘI DUNG:
+1. Viết cho người đọc trên điện thoại: câu 10-18 từ là chính, đoạn 2-4 câu, mỗi đoạn không quá 60 từ.
+2. Đi thẳng vào vấn đề trong 2 câu đầu. Tránh mở bài kiểu "Bạn có biết", "Hãy cùng tìm hiểu", "Trong bài viết này".
+3. Mỗi 200-300 từ nên có một chi tiết cụ thể: con số, mốc thời gian, ví dụ, công cụ, nhóm người dùng hoặc tình huống thực tế.
+4. Có quan điểm rõ, nhưng mỗi quan điểm phải có lý do. Nếu có trade-off, nói thẳng.
+5. Không hứa quá đà. Nếu giải pháp chỉ phù hợp với một nhóm người dùng, nói rõ nhóm đó.
+6. SEO tự nhiên: keyword chính xuất hiện trong intro, một vài H2/body và kết luận; không nhồi từ khóa.
+7. LSI keywords phải được cài tự nhiên, không liệt kê máy móc.
+8. Nếu thiếu dữ liệu, dùng cụm từ cẩn thận như "thường", "trong nhiều trường hợp", "nên kiểm tra lại" thay vì bịa số liệu.
+9. Chú ý title và các heading phải có sức hút, để tăng CTR và giữ người đọc ở lại.
+10. Có thể dùng số liệu, 5W1H, so sánh, tranh luận, case thực tế, câu chuyện ngắn nếu hợp chủ đề.
 
-CHAT LUONG CAN DAT:
-- Doc xong moi H2, nguoi doc phai co them mot quyet dinh hoac mot hanh dong cu the.
-- Bai viet phai vuot outline doi thu bang chieu sau, vi du thuc te va goc nhin rieng.
-- Ket luan khong tom tat dai dong; chot lai insight va CTA cu the.${toneLine}
+CHẤT LƯỢNG CẦN ĐẠT:
+- Đọc xong mỗi H2, người đọc phải có thêm một quyết định hoặc một hành động cụ thể.
+- Bài viết phải vượt outline đối thủ bằng chiều sâu, ví dụ thực tế và góc nhìn riêng.
+- Kết luận không tóm tắt dài dòng; chốt lại insight và CTA cụ thể.${toneLine}
 ${buildProductContextInjection(args.productContext)}
 ${buildBrandVoiceInjection(args.brandVoice)}`;
 }
@@ -127,42 +127,42 @@ export function buildArticleUserPrompt(args: BuildArticlePromptArgs): string {
   const minWords = Math.floor(args.targetWordCount * 0.9);
   const maxWords = Math.ceil(args.targetWordCount * 1.12);
 
-  return `Viet mot bai SEO hoan chinh khoang ${args.targetWordCount} tu dua tren outline duoi day.
+  return `Viết một bài SEO hoàn chỉnh khoảng ${args.targetWordCount} từ dựa trên outline dưới đây.
 
-KEYWORD CHINH:
+KEYWORD CHÍNH:
 ${args.keyword}
 
 FORMAT:
 ${args.format}
 
-OUTLINE BAT BUOC BAM THEO:
+OUTLINE BẮT BUỘC BÁM THEO:
 ${outlineMd}
 
-YEU CAU THUC THI:
-1. H1 phai chua keyword "${args.keyword}" va giu dung y dinh cua outline.
-2. Intro 120-180 tu: co hook cu the, nhac keyword trong 50 tu dau, noi ro van de nguoi doc dang gap.
-3. Do dai bat buoc: bai viet phai nam trong khoang ${minWords}-${maxWords} tu. Khong duoc dung lai som sau 300-800 tu.
-4. Phan bo do dai: intro 120-180 tu, moi H2 khoang ${sectionBudget} tu, ket bai 120-180 tu. Neu outline khong co H3 thi viet truc tiep theo H2, khong tu y de qua nhieu H3 moi.
-5. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
-6. Neu co H3, moi H3 chi tra loi mot y cu the, khong lap lai tieu de.
-7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA/nhip cau/cach chuyen y cua brand voice neu co.
-7b. Neu co thong tin san pham MKT lien quan, chen vao dung cho trong bai duoi dang vi du, giai phap, checklist, so sanh hoac CTA mem. Khong bien moi bai viet thanh trang ban hang.
-8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
-9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
-10. Bai viet phai co TOC/muc luc gan dau bai bang danh sach lien ket hoac danh sach thuong de nguoi doc scan nhanh.
-11. Trong bai nen co it nhat 1 bang Markdown va 1 vi tri de nhung video neu chu de phu hop. Neu khong co link video that, viet mot dong goi y video can nhung.
-12. Trong bai phai co goi y cho it nhat 3 hinh anh minh hoa phu hop voi noi dung. Co the dat bang dong nghieng dang *Goi y hinh anh:* ... tai dung vi tri.
-13. Phai co internal link va external link o dang Markdown. External link chi tro toi nguon uy tin, khong tro doi thu, va uu tien ghi chu (nofollow) neu la link ngoai khong thuoc doanh nghiep.
-14. Tu khoa chinh va tu khoa phu phai duoc phan bo tu nhien o dau, giua va cuoi bai. Tranh lap lai mot cum tu qua day.
-15. Neu co anh trong bai, alt text/goi y alt phai huong den nguoi dung va nen chua keyword chinh hoac bien the hop ly.
-16. Ket bai 120-180 tu: tong ket insight chinh va CTA ro rang.
-17. Neu den gan cuoi ma bai chua dat ${minWords} tu, tiep tuc mo rong cac H2 mong bang vi du, checklist, loi thuong gap, bang so sanh hoac case thuc te.
-18. Chi tra ve Markdown thuan, bat dau ngay bang "#".
+YÊU CẦU THỰC THI:
+1. H1 phải chứa keyword "${args.keyword}" và giữ đúng ý định của outline.
+2. Intro 120-180 từ: có hook cụ thể, nhắc keyword trong 50 từ đầu, nói rõ vấn đề người đọc đang gặp.
+3. Độ dài bắt buộc: bài viết phải nằm trong khoảng ${minWords}-${maxWords} từ. Không được dừng lại sớm sau 300-800 từ.
+4. Phân bổ độ dài: intro 120-180 từ, mỗi H2 khoảng ${sectionBudget} từ, kết bài 120-180 từ. Nếu outline không có H3 thì viết trực tiếp theo H2, không tự ý đẻ quá nhiều H3 mới.
+5. Mỗi H2 cần có lập luận đầy đủ, ví dụ hoặc tình huống thực tế. Không viết mỗi mục quá mỏng.
+6. Nếu có H3, mỗi H3 chỉ trả lời một ý cụ thể, không lặp lại tiêu đề.
+7. Liên kết chặt giữa outline -> brand voice -> nội dung: mỗi heading trong outline phải được viết thành nội dung thật, đúng tone/từ vựng/CTA/nhịp câu/cách chuyển ý của brand voice nếu có.
+7b. Nếu có thông tin sản phẩm MKT liên quan, chèn vào đúng chỗ trong bài dưới dạng ví dụ, giải pháp, checklist, so sánh hoặc CTA mềm. Không biến mọi bài viết thành trang bán hàng.
+8. Dùng bảng Markdown khi cần so sánh, quy trình, checklist hoặc tiêu chí lựa chọn.
+9. Bold keyword chính 3-5 lần bằng **${args.keyword}** ở các vị trí tự nhiên.
+10. Bài viết phải có TOC/mục lục gần đầu bài bằng danh sách liên kết hoặc danh sách thường để người đọc scan nhanh.
+11. Trong bài nên có ít nhất 1 bảng Markdown và 1 vị trí để nhúng video nếu chủ đề phù hợp. Nếu không có link video thật, viết một dòng gợi ý video cần nhúng.
+12. Trong bài phải có gợi ý cho ít nhất 3 hình ảnh minh họa phù hợp với nội dung. Có thể đặt bằng dòng nghiêng dạng *Gợi ý hình ảnh:* ... tại đúng vị trí.
+13. Phải có internal link và external link ở dạng Markdown. External link chỉ trỏ tới nguồn uy tín, không trỏ đối thủ, và ưu tiên ghi chú (nofollow) nếu là link ngoài không thuộc doanh nghiệp.
+14. Từ khóa chính và từ khóa phụ phải được phân bố tự nhiên ở đầu, giữa và cuối bài. Tránh lặp lại một cụm từ quá dày.
+15. Nếu có ảnh trong bài, alt text/gợi ý alt phải hướng đến người dùng và nên chứa keyword chính hoặc biến thể hợp lý.
+16. Kết bài 120-180 từ: tổng kết insight chính và CTA rõ ràng.
+17. Nếu đến gần cuối mà bài chưa đạt ${minWords} từ, tiếp tục mở rộng các H2 mỏng bằng ví dụ, checklist, lỗi thường gặp, bảng so sánh hoặc case thực tế.
+18. Chỉ trả về Markdown thuần, bắt đầu ngay bằng "#".
 
-QUY TAC THEO FORMAT:
+QUY TẮC THEO FORMAT:
 ${formatRules}
 
-Bat dau viet bai:`;
+Bắt đầu viết bài:`;
 }
 
 function buildProductContextInjection(
@@ -170,25 +170,23 @@ function buildProductContextInjection(
 ): string {
   if (!productContext || productContext.matchedProducts.length === 0) return '';
 
-  const lines: string[] = ['', 'PRODUCT CONTEXT - CHI DUNG KHI THUC SU LIEN QUAN:'];
-  lines.push(`- Thuong hieu: ${productContext.brandSummary.brand}`);
+  const lines: string[] = ['', 'PRODUCT CONTEXT - CHỈ DÙNG KHI THỰC SỰ LIÊN QUAN:'];
+  lines.push(`- Thương hiệu: ${productContext.brandSummary.brand}`);
+  lines.push(`- Điểm mạnh chung: ${productContext.brandSummary.strengths.join(' | ')}`);
   lines.push(
-    `- Diem manh chung: ${productContext.brandSummary.strengths.join(' | ')}`,
+    '- Cách dùng trong bài: chỉ chèn sản phẩm khi nó giải quyết đúng pain point của keyword/outline; ưu tiên giống giải pháp, ví dụ triển khai, checklist, hoặc CTA mềm ở cuối bài.',
   );
   lines.push(
-    '- Cach dung trong bai: chi chen san pham khi no giai quyet dung pain point cua keyword/outline; uu tien giong giai phap, vi du trien khai, checklist, hoac CTA mem o cuoi bai.',
-  );
-  lines.push(
-    '- Khong duoc nhac ten san pham mot cach go ep trong moi H2. Neu chu de khong lien quan truc tiep, chi nhac rat nhe hoac bo qua.',
+    '- Không được nhắc tên sản phẩm một cách gò ép trong mọi H2. Nếu chủ đề không liên quan trực tiếp, chỉ nhắc rất nhẹ hoặc bỏ qua.',
   );
 
   productContext.matchedProducts.forEach((item, index) => {
-    lines.push(`- San pham lien quan ${index + 1}: ${item.name} - ${item.tagline}`);
+    lines.push(`- Sản phẩm liên quan ${index + 1}: ${item.name} - ${item.tagline}`);
     lines.push(`  URL: ${item.url}`);
-    lines.push(`  Vi sao lien quan: ${item.whyRelevant.join(' | ')}`);
+    lines.push(`  Vì sao liên quan: ${item.whyRelevant.join(' | ')}`);
     lines.push(`  USP: ${item.usp.join(' | ')}`);
-    lines.push(`  Doi tuong phu hop: ${item.audience.join(' | ')}`);
-    lines.push(`  Pain point giai quyet: ${item.painPoints.join(' | ')}`);
+    lines.push(`  Đối tượng phù hợp: ${item.audience.join(' | ')}`);
+    lines.push(`  Pain point giải quyết: ${item.painPoints.join(' | ')}`);
     lines.push(`  Social proof: ${item.socialProof.join(' | ')}`);
   });
 
@@ -199,83 +197,77 @@ function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice
   if (!brandVoice) return '';
 
   const bv = brandVoice.profile;
-  const lines: string[] = ['', 'BRAND VOICE BAT BUOC AP DUNG:'];
-  if (brandVoice.description?.trim()) lines.push(`- Huong dan them tu admin: ${brandVoice.description.trim()}`);
-  if (bv.brand_name) lines.push(`- Ten brand: ${bv.brand_name}`);
-  if (bv.tone?.primary) lines.push(`- Tone chinh: ${bv.tone.primary}`);
-  if (bv.tone?.secondary?.length) lines.push(`- Tone phu: ${bv.tone.secondary.join(', ')}`);
+  const lines: string[] = ['', 'BRAND VOICE BẮT BUỘC ÁP DỤNG:'];
+  if (brandVoice.description?.trim()) lines.push(`- Hướng dẫn thêm từ admin: ${brandVoice.description.trim()}`);
+  if (bv.brand_name) lines.push(`- Tên brand: ${bv.brand_name}`);
+  if (bv.tone?.primary) lines.push(`- Tone chính: ${bv.tone.primary}`);
+  if (bv.tone?.secondary?.length) lines.push(`- Tone phụ: ${bv.tone.secondary.join(', ')}`);
   if (bv.sentence_structure?.avg_words_per_sentence) {
-    lines.push(`- Do dai cau trung binh: ${bv.sentence_structure.avg_words_per_sentence} tu`);
+    lines.push(`- Độ dài câu trung bình: ${bv.sentence_structure.avg_words_per_sentence} từ`);
   }
   if (bv.addressing?.primary) {
-    const formality = bv.addressing.formality ? `, muc do: ${bv.addressing.formality}` : '';
-    lines.push(`- Xung ho voi doc gia: ${bv.addressing.primary}${formality}`);
+    const formality = bv.addressing.formality ? `, mức độ: ${bv.addressing.formality}` : '';
+    lines.push(`- Xưng hô với độc giả: ${bv.addressing.primary}${formality}`);
   }
-  if (bv.addressing?.self_reference) lines.push(`- Cach tu xung cua brand: ${bv.addressing.self_reference}`);
+  if (bv.addressing?.self_reference) lines.push(`- Cách tự xưng của brand: ${bv.addressing.self_reference}`);
   if (bv.signature_phrases?.length) {
-    lines.push(`- Cum tu dac trung nen dung co chon loc: ${bv.signature_phrases.slice(0, 8).join(', ')}`);
+    lines.push(`- Cụm từ đặc trưng nên dùng có chọn lọc: ${bv.signature_phrases.slice(0, 8).join(', ')}`);
   }
   if (bv.vocabulary?.preferred?.length) {
-    lines.push(`- Tu/cum tu uu tien: ${bv.vocabulary.preferred.slice(0, 12).join(', ')}`);
+    lines.push(`- Từ/cụm từ ưu tiên: ${bv.vocabulary.preferred.slice(0, 12).join(', ')}`);
   }
   if (bv.vocabulary?.avoided?.length) {
-    lines.push(`- Tu/cum tu can tranh: ${bv.vocabulary.avoided.slice(0, 12).join(', ')}`);
+    lines.push(`- Từ/cụm từ cần tránh: ${bv.vocabulary.avoided.slice(0, 12).join(', ')}`);
   }
   if (bv.emoji_usage?.enabled) {
-    const density = bv.emoji_usage.density ?? 'thap';
+    const density = bv.emoji_usage.density ?? 'thấp';
     const emojis = bv.emoji_usage.common_emojis?.length ? ` (${bv.emoji_usage.common_emojis.join(' ')})` : '';
-    lines.push(`- Emoji: duoc dung voi mat do ${density}${emojis}`);
+    lines.push(`- Emoji: được dùng với mật độ ${density}${emojis}`);
   } else if (bv.emoji_usage?.enabled === false) {
-    lines.push('- Emoji: khong dung emoji');
+    lines.push('- Emoji: không dùng emoji');
   }
-  if (bv.patterns?.opening_style) lines.push(`- Kieu mo bai: ${bv.patterns.opening_style}`);
-  if (bv.patterns?.closing_style) lines.push(`- Kieu ket bai: ${bv.patterns.closing_style}`);
-  if (bv.patterns?.cta_style) lines.push(`- Kieu CTA: ${bv.patterns.cta_style}`);
+  if (bv.patterns?.opening_style) lines.push(`- Kiểu mở bài: ${bv.patterns.opening_style}`);
+  if (bv.patterns?.closing_style) lines.push(`- Kiểu kết bài: ${bv.patterns.closing_style}`);
+  if (bv.patterns?.cta_style) lines.push(`- Kiểu CTA: ${bv.patterns.cta_style}`);
   if (bv.paragraph_rhythm?.avg_sentences_per_paragraph) {
-    lines.push(
-      `- Nhip doan van: trung binh ${bv.paragraph_rhythm.avg_sentences_per_paragraph} cau/doan`,
-    );
+    lines.push(`- Nhịp đoạn văn: trung bình ${bv.paragraph_rhythm.avg_sentences_per_paragraph} câu/đoạn`);
   }
   if (bv.paragraph_rhythm?.preferred_paragraph_style) {
-    lines.push(`- Kieu doan van uu tien: ${bv.paragraph_rhythm.preferred_paragraph_style}`);
+    lines.push(`- Kiểu đoạn văn ưu tiên: ${bv.paragraph_rhythm.preferred_paragraph_style}`);
   }
-  if (bv.heading_style?.h2_pattern) lines.push(`- Kieu dat H2: ${bv.heading_style.h2_pattern}`);
-  if (bv.heading_style?.h3_pattern) lines.push(`- Kieu dat H3: ${bv.heading_style.h3_pattern}`);
+  if (bv.heading_style?.h2_pattern) lines.push(`- Kiểu đặt H2: ${bv.heading_style.h2_pattern}`);
+  if (bv.heading_style?.h3_pattern) lines.push(`- Kiểu đặt H3: ${bv.heading_style.h3_pattern}`);
   if (typeof bv.heading_style?.prefers_questions === 'boolean') {
-    lines.push(
-      `- Heading dang cau hoi: ${bv.heading_style.prefers_questions ? 'uu tien' : 'khong uu tien'}`,
-    );
+    lines.push(`- Heading dạng câu hỏi: ${bv.heading_style.prefers_questions ? 'ưu tiên' : 'không ưu tiên'}`);
   }
   if (typeof bv.heading_style?.prefers_numbers === 'boolean') {
-    lines.push(
-      `- Heading co so dem: ${bv.heading_style.prefers_numbers ? 'uu tien' : 'khong uu tien'}`,
-    );
+    lines.push(`- Heading có số đếm: ${bv.heading_style.prefers_numbers ? 'ưu tiên' : 'không ưu tiên'}`);
   }
   if (bv.transitions?.preferred?.length) {
-    lines.push(`- Cum chuyen y uu tien: ${bv.transitions.preferred.slice(0, 10).join(', ')}`);
+    lines.push(`- Cụm chuyển ý ưu tiên: ${bv.transitions.preferred.slice(0, 10).join(', ')}`);
   }
   if (bv.transitions?.avoided?.length) {
-    lines.push(`- Cum chuyen y can tranh: ${bv.transitions.avoided.slice(0, 10).join(', ')}`);
+    lines.push(`- Cụm chuyển ý cần tránh: ${bv.transitions.avoided.slice(0, 10).join(', ')}`);
   }
   if (bv.persuasion?.evidence_style) {
-    lines.push(`- Cach dua bang chung: ${bv.persuasion.evidence_style}`);
+    lines.push(`- Cách đưa bằng chứng: ${bv.persuasion.evidence_style}`);
   }
   if (bv.persuasion?.sales_intensity) {
-    lines.push(`- Muc do ban hang: ${bv.persuasion.sales_intensity}`);
+    lines.push(`- Mức độ bán hàng: ${bv.persuasion.sales_intensity}`);
   }
   if (bv.persuasion?.objection_handling) {
-    lines.push(`- Cach xu ly phan van: ${bv.persuasion.objection_handling}`);
+    lines.push(`- Cách xử lý phản vấn: ${bv.persuasion.objection_handling}`);
   }
   if (bv.forbidden_phrases?.length) {
-    lines.push(`- Cum tu cam dung: ${bv.forbidden_phrases.slice(0, 12).join(', ')}`);
+    lines.push(`- Cụm từ cấm dùng: ${bv.forbidden_phrases.slice(0, 12).join(', ')}`);
   }
-  lines.push('- Muc tieu la de nguoi doc co cam giac bai nay do chinh brand viet, khong phai AI phan tich ho.');
+  lines.push('- Mục tiêu là để người đọc có cảm giác bài này do chính brand viết, không phải AI phân tích hộ.');
 
   if (brandVoice.referenceArticles.length) {
-    lines.push('', 'BAI MAU DE BAT CHUOC PHONG CACH, KHONG COPY NOI DUNG:');
+    lines.push('', 'BÀI MẪU ĐỂ BẮT CHƯỚC PHONG CÁCH, KHÔNG COPY NỘI DUNG:');
     brandVoice.referenceArticles.slice(0, 3).forEach((article, index) => {
       const excerpt = article.content.slice(0, 1800);
-      lines.push(`\n[Mau ${index + 1}${article.title ? ` - ${article.title}` : ''}]\n${excerpt}`);
+      lines.push(`\n[Mẫu ${index + 1}${article.title ? ` - ${article.title}` : ''}]\n${excerpt}`);
     });
   }
 
@@ -284,14 +276,14 @@ function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice
 
 function buildFormatRules(format: OutlineFormat): string {
   const rules: Record<OutlineFormat, string> = {
-    blog: '- Blog: viet chuyen sau, co intro manh, giai thich ro, vi du thuc te, FAQ va CTA mem.',
-    listicle: '- Listicle: moi muc chinh la mot H2 co so thu tu, co tieu chi xep hang, uu/nhuoc diem ngan va ket luan lua chon.',
-    'how-to': '- How-to: trinh bay theo cac buoc hanh dong; moi buoc co muc tieu, cach lam, loi thuong gap va checklist.',
-    review: '- Review: co tieu chi danh gia, trai nghiem su dung, pros/cons, doi tuong phu hop/khong phu hop va verdict.',
-    comparison: '- Comparison: bat buoc co bang so sanh Markdown, tieu chi ro, phan tich trade-off va khuyen nghi theo tung nhu cau.',
-    faq: '- FAQ: moi H2/H3 la cau hoi that; tra loi ngan gon truoc, sau do mo rong bang vi du va luu y.',
-    landing: '- Landing: viet theo flow pain -> solution -> proof -> offer -> CTA; moi section phai phuc vu chuyen doi.',
-    product: '- Product: lam ro doi tuong phu hop, tinh nang, loi ich, bang chung, quy trinh dung thu/mua va CTA.',
+    blog: '- Blog: viết chuyên sâu, có intro mạnh, giải thích rõ, ví dụ thực tế, FAQ và CTA mềm.',
+    listicle: '- Listicle: mỗi mục chính là một H2 có số thứ tự, có tiêu chí xếp hạng, ưu/nhược điểm ngắn và kết luận lựa chọn.',
+    'how-to': '- How-to: trình bày theo các bước hành động; mỗi bước có mục tiêu, cách làm, lỗi thường gặp và checklist.',
+    review: '- Review: có tiêu chí đánh giá, trải nghiệm sử dụng, pros/cons, đối tượng phù hợp/không phù hợp và verdict.',
+    comparison: '- Comparison: bắt buộc có bảng so sánh Markdown, tiêu chí rõ, phân tích trade-off và khuyến nghị theo từng nhu cầu.',
+    faq: '- FAQ: mỗi H2/H3 là câu hỏi thật; trả lời ngắn gọn trước, sau đó mở rộng bằng ví dụ và lưu ý.',
+    landing: '- Landing: viết theo flow pain -> solution -> proof -> offer -> CTA; mỗi section phải phục vụ chuyển đổi.',
+    product: '- Product: làm rõ đối tượng phù hợp, tính năng, lợi ích, bằng chứng, quy trình dùng thử/mua và CTA.',
   };
   return rules[format];
 }

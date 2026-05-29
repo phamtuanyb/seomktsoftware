@@ -411,33 +411,6 @@ export class ArticleService {
     });
 
     const imageSuggestions = this.extractImageSuggestions(processed.markdownProcessed);
-    if (imageSuggestions.length > 0) {
-      try {
-        const generatedImages = await this.generateInlineImagesForArticle(
-          articleId,
-          userId,
-          imageSuggestions,
-        );
-        if (generatedImages.length > 0) {
-          const withImages = this.embedGeneratedImages({
-            markdown: processed.markdownProcessed,
-            html: processed.html,
-            suggestions: imageSuggestions,
-            images: generatedImages,
-          });
-          await this.prisma.article.update({
-            where: { id: articleId },
-            data: {
-              contentMarkdown: withImages.markdown,
-              content: withImages.html,
-              featuredImageId: generatedImages[0]?.id ?? undefined,
-            },
-          });
-        }
-      } catch (err) {
-        this.logger.warn(`Auto image generation skipped for article ${articleId}: ${(err as Error).message}`);
-      }
-    }
 
     await this.eventBus.emit('article.completed', {
       article_id: articleId,
@@ -459,6 +432,16 @@ export class ArticleService {
       cost_usd: finishMeta.costUsd,
       is_stub: finishMeta.isStub ?? !provider.available,
     };
+
+    if (imageSuggestions.length > 0) {
+      void this.attachInlineImagesInBackground({
+        articleId,
+        userId,
+        markdown: processed.markdownProcessed,
+        html: processed.html,
+        suggestions: imageSuggestions,
+      });
+    }
   }
 
   // ----- Brand voice loading (inline) -----
@@ -580,6 +563,43 @@ export class ArticleService {
       await this.quotas.consumeQuota(userId, 'images', result.images.length);
     }
     return result.images;
+  }
+
+  private async attachInlineImagesInBackground(args: {
+    articleId: string;
+    userId: string;
+    markdown: string;
+    html: string;
+    suggestions: Array<{ lineIndex: number; rawLine: string; prompt: string; altText: string }>;
+  }): Promise<void> {
+    try {
+      const generatedImages = await this.generateInlineImagesForArticle(
+        args.articleId,
+        args.userId,
+        args.suggestions,
+      );
+      if (generatedImages.length === 0) return;
+
+      const withImages = this.embedGeneratedImages({
+        markdown: args.markdown,
+        html: args.html,
+        suggestions: args.suggestions,
+        images: generatedImages,
+      });
+
+      await this.prisma.article.update({
+        where: { id: args.articleId },
+        data: {
+          contentMarkdown: withImages.markdown,
+          content: withImages.html,
+          featuredImageId: generatedImages[0]?.id ?? undefined,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Auto image generation skipped for article ${args.articleId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   private embedGeneratedImages(args: {

@@ -78,7 +78,7 @@ export function OutlineDisplay({
         <div>
           <CardTitle className="text-lg">{outline.h1}</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            {outline.sections.length} H2 chinh · model:{' '}
+            {outline.sections.length} H2 chính · model:{' '}
             <code className="text-xs">{outline.metadata.ai_model}</code>
             {outline.metadata.is_stub && (
               <span className="ml-2 rounded bg-yellow-100 px-2 py-0.5 text-yellow-800">STUB</span>
@@ -92,11 +92,11 @@ export function OutlineDisplay({
           {streaming ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Streaming {tokenCount} tokens...
+              Đang viết {tokenCount} tokens...
             </>
           ) : (
             <>
-              Viet bai hoan chinh <ArrowRight className="ml-2 h-4 w-4" />
+              Viết bài hoàn chỉnh <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}
         </Button>
@@ -142,10 +142,10 @@ export function OutlineDisplay({
 
         {sectionEvents.length > 0 && (
           <div className="rounded-md border-l-4 border-l-brand bg-brand/5 p-3 text-sm">
-            <p className="font-medium">Tien do streaming:</p>
+            <p className="font-medium">Tiến độ streaming:</p>
             <ul className="mt-1 list-disc pl-4 text-xs">
               {sectionEvents.map((title, index) => (
-                <li key={index}>Hoan thanh: {title}</li>
+                <li key={index}>Hoàn thành: {title}</li>
               ))}
             </ul>
           </div>

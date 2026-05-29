@@ -4,34 +4,34 @@
  */
 
 export const STUB_OUTLINE_JSON = `{
-  "meta_title": "{{KEYWORD}} | Outline SEO thuc chien",
-  "meta_description": "{{KEYWORD}} duoc trinh bay thanh outline gon, ro intent, co mo bai, than bai va CTA de writer co the viet thanh bai SEO ngay.",
-  "h1": "[STUB] {{KEYWORD}}: Huong dan toan dien tu A-Z",
+  "meta_title": "{{KEYWORD}} | Outline SEO thực chiến",
+  "meta_description": "{{KEYWORD}} được trình bày thành outline gọn, rõ intent, có mở bài, thân bài và CTA để writer có thể viết thành bài SEO ngay.",
+  "h1": "[STUB] {{KEYWORD}}: Hướng dẫn toàn diện từ A-Z",
   "sections": [
     {
-      "h2": "{{KEYWORD}} la gi va khi nao can quan tam?",
+      "h2": "{{KEYWORD}} là gì và khi nào cần quan tâm?",
       "subsections": []
     },
     {
-      "h2": "Loi ich va gia tri thuc te cua {{KEYWORD}}",
+      "h2": "Lợi ích và giá trị thực tế của {{KEYWORD}}",
       "subsections": [
         {
-          "h3": "Gia tri uu tien",
+          "h3": "Giá trị ưu tiên",
           "bullets": [
-            "Loi ich lon nhat dat truoc",
-            "Trade-off can biet"
+            "Lợi ích lớn nhất đặt trước",
+            "Trade-off cần biết"
           ]
         }
       ]
     },
     {
-      "h2": "Cach trien khai {{KEYWORD}} hieu qua",
+      "h2": "Cách triển khai {{KEYWORD}} hiệu quả",
       "subsections": [
         {
-          "h3": "Khung trien khai",
+          "h3": "Khung triển khai",
           "bullets": [
-            "Lam gi truoc, lam gi sau",
-            "Do luong va toi uu"
+            "Làm gì trước, làm gì sau",
+            "Đo lường và tối ưu"
           ]
         }
       ]
@@ -52,24 +52,24 @@ export function stubRewriteFor(args: { source: string; action: string; keyword: 
 
 /** Generates a stub article string for streaming near the requested word count. */
 export function stubArticleFor(keyword: string, targetWordCount = 2000): string {
-  const intro = `# [STUB] ${keyword}: Huong dan toan dien\n\n**${keyword}** dang la mot trong nhung chu de duoc quan tam nhat hien nay. Bai viet nay giup ban hieu ro tu khai niem, loi ich, cach trien khai den sai lam can tranh. Noi dung dang chay o che do stub vi provider AI chua san sang hoac API dang loi, nhung do dai van bam theo so tu muc tieu de ban test dung flow.`;
+  const intro = `# [STUB] ${keyword}: Hướng dẫn toàn diện\n\n**${keyword}** đang là một trong những chủ đề được quan tâm nhất hiện nay. Bài viết này giúp bạn hiểu rõ từ khái niệm, lợi ích, cách triển khai đến sai lầm cần tránh. Nội dung đang chạy ở chế độ stub vì provider AI chưa sẵn sàng hoặc API đang lỗi, nhưng độ dài vẫn bám theo số từ mục tiêu để bạn test đúng flow.`;
 
   const section = (title: string, body: string) => `\n\n## ${title}\n\n${body}\n\n`;
 
   const paragraph = (theme: string, index: number) =>
-    `Doan ${index} ve ${theme} lien quan den ${keyword}. Trong thuc te, nguoi lam SEO khong chi can mot dinh nghia dung ma con can cach ap dung vao boi canh cu the. Vi du, voi mot doanh nghiep nho, uu tien se la chi phi, toc do trien khai va kha nang do luong sau 30 ngay. Neu bo qua cac yeu to nay, noi dung rat de dai nhung khong giup nguoi doc ra quyet dinh. LSI keyword: SEO, content marketing, tu khoa dai, intent nguoi dung, content score.`;
+    `Đoạn ${index} về ${theme} liên quan đến ${keyword}. Trong thực tế, người làm SEO không chỉ cần một định nghĩa đúng mà còn cần cách áp dụng vào bối cảnh cụ thể. Ví dụ, với một doanh nghiệp nhỏ, ưu tiên sẽ là chi phí, tốc độ triển khai và khả năng đo lường sau 30 ngày. Nếu bỏ qua các yếu tố này, nội dung rất dễ dài nhưng không giúp người đọc ra quyết định. LSI keyword: SEO, content marketing, từ khóa dài, intent người dùng, content score.`;
 
   const filler = (theme: string, paragraphs = 4) =>
     Array.from({ length: paragraphs }, (_, index) => paragraph(theme, index + 1)).join(' ');
   const perSectionParagraphs = Math.max(2, Math.ceil(targetWordCount / 700));
 
   const body = [
-    section(`${keyword} la gi?`, filler('khai niem co ban', perSectionParagraphs)),
-    section(`Loi ich chinh cua ${keyword}`, filler('loi ich', perSectionParagraphs)),
-    section(`Huong dan ap dung ${keyword}`, filler('huong dan trien khai', perSectionParagraphs)),
+    section(`${keyword} là gì?`, filler('khái niệm cơ bản', perSectionParagraphs)),
+    section(`Lợi ích chính của ${keyword}`, filler('lợi ích', perSectionParagraphs)),
+    section(`Hướng dẫn áp dụng ${keyword}`, filler('hướng dẫn triển khai', perSectionParagraphs)),
     section(
-      'Ket luan',
-      `${keyword} la mot chu de rong, nhung neu bam dung intent, dung outline va do luong deu dan, ban co the tao ra noi dung huu ich hon doi thu. Hay bat dau bang mot checklist nho, do ket qua sau 30 ngay, roi mo rong cac phan dang co tin hieu tot. [STUB MODE - nap credit hoac cau hinh provider AI de sinh bai that].`,
+      'Kết luận',
+      `${keyword} là một chủ đề rộng, nhưng nếu bám đúng intent, đúng outline và đo lường đều đặn, bạn có thể tạo ra nội dung hữu ích hơn đối thủ. Hãy bắt đầu bằng một checklist nhỏ, đo kết quả sau 30 ngày, rồi mở rộng các phần đang có tín hiệu tốt. [STUB MODE - nạp credit hoặc cấu hình provider AI để sinh bài thật].`,
     ),
   ].join('');
 
