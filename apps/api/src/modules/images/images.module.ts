@@ -8,18 +8,24 @@ import { StorageService } from './storage/storage.service';
 import { ImageProcessor } from './storage/image-processor.service';
 import { FluxProvider } from './providers/flux.provider';
 import { DalleProvider } from './providers/dalle.provider';
-import { IMAGE_PROVIDER_FLUX, IMAGE_PROVIDER_DALLE } from './providers/image-provider.interface';
+import { YescaleImageProvider } from './providers/yescale-image.provider';
+import {
+  IMAGE_PROVIDER_DALLE,
+  IMAGE_PROVIDER_FLUX,
+  IMAGE_PROVIDER_YESCALE,
+} from './providers/image-provider.interface';
 
-/** Section 8 TN6 — wires Flux/DALL-E providers + storage + safety + alt-text. */
+/** Section 8 TN6 - wires Flux/DALL-E/Yescale providers + storage + safety + alt-text. */
 @Module({
-  // LlmModule provides LlmRegistry which ImageSafetyService + AltTextService use.
   imports: [LlmModule],
   controllers: [ImagesController],
   providers: [
     FluxProvider,
     DalleProvider,
+    YescaleImageProvider,
     { provide: IMAGE_PROVIDER_FLUX, useExisting: FluxProvider },
     { provide: IMAGE_PROVIDER_DALLE, useExisting: DalleProvider },
+    { provide: IMAGE_PROVIDER_YESCALE, useExisting: YescaleImageProvider },
     StorageService,
     ImageProcessor,
     ImageSafetyService,

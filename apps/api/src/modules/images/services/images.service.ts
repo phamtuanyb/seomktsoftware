@@ -10,6 +10,7 @@ import { uuidv7 } from 'uuidv7';
 import { ErrorCode } from '@mkt-seo/shared';
 import { PrismaService } from '../../../common/services/prisma.service';
 import { EventBusService } from '../../../common/services/event-bus.service';
+import { AiSettingsService } from '../../admin/ai-settings.service';
 import { StorageService } from '../storage/storage.service';
 import { ImageProcessor } from '../storage/image-processor.service';
 import { ImageSafetyService } from './image-safety.service';
@@ -17,6 +18,7 @@ import { AltTextService } from './alt-text.service';
 import {
   IMAGE_PROVIDER_DALLE,
   IMAGE_PROVIDER_FLUX,
+  IMAGE_PROVIDER_YESCALE,
   STYLE_PRESETS,
   resolveImageModel,
   type GeneratedImage,
@@ -90,12 +92,14 @@ export class ImagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
+    private readonly settings: AiSettingsService,
     private readonly storage: StorageService,
     private readonly processor: ImageProcessor,
     private readonly safety: ImageSafetyService,
     private readonly altText: AltTextService,
     @Inject(IMAGE_PROVIDER_FLUX) private readonly flux: ImageProvider,
     @Inject(IMAGE_PROVIDER_DALLE) private readonly dalle: ImageProvider,
+    @Inject(IMAGE_PROVIDER_YESCALE) private readonly yescale: ImageProvider,
   ) {}
 
   async generate(dto: GenerateImageDto, userId: string): Promise<GenerateImageResponse> {
@@ -103,7 +107,7 @@ export class ImagesService {
     const style: ImageStyle = dto.style ?? 'mkt-brand';
     const aspectRatio: ImageAspectRatio = dto.aspect_ratio ?? '16:9';
     const count = dto.count ?? 1;
-    const model = dto.model ?? 'flux-schnell';
+    const model = dto.model ?? this.defaultModel();
 
     // Step 1 — safety check.
     const safety = await this.safety.check(dto.prompt);
@@ -194,7 +198,7 @@ export class ImagesService {
     const style: ImageStyle = dto.style ?? 'mkt-brand';
     const includeFeatured = dto.include_featured !== false;
     const maxInContent = dto.max_in_content ?? 4;
-    const model = dto.model ?? 'flux-schnell';
+    const model = dto.model ?? this.defaultModel();
     const keyword = article.targetKeyword ?? '';
 
     // Build the prompt list — featured uses the title, in-content one per H2.
@@ -307,7 +311,7 @@ export class ImagesService {
     }
 
     const style: ImageStyle = args.style ?? 'mkt-brand';
-    const model = args.model ?? 'flux-schnell';
+    const model = args.model ?? this.defaultModel();
     const prompts = args.prompts
       .map((item) => ({
         prompt: item.prompt.trim(),
@@ -412,7 +416,14 @@ export class ImagesService {
   // ----- internals -----
 
   private pickProvider(model: ImageModel): ImageProvider {
-    return resolveImageModel(model) === IMAGE_PROVIDER_DALLE ? this.dalle : this.flux;
+    const resolved = resolveImageModel(model);
+    if (resolved === IMAGE_PROVIDER_DALLE) return this.dalle;
+    if (resolved === IMAGE_PROVIDER_YESCALE) return this.yescale;
+    return this.flux;
+  }
+
+  private defaultModel(): ImageModel {
+    return this.settings.hasConfiguredKey('yescale') ? 'yescale-gpt-image-1' : 'flux-schnell';
   }
 
   private async processSingleImage(opts: {

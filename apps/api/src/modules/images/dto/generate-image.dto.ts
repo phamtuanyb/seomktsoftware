@@ -27,7 +27,7 @@ export const IMAGE_STYLES = [
 ] as const;
 
 export const IMAGE_RATIOS = ['16:9', '4:3', '1:1'] as const;
-export const IMAGE_MODELS = ['flux-schnell', 'dalle-3'] as const;
+export const IMAGE_MODELS = ['flux-schnell', 'dalle-3', 'yescale-gpt-image-1'] as const;
 
 /** Section 8 TN6 `/generate` body. */
 export class GenerateImageDto {
