@@ -110,6 +110,9 @@ DNA NỘI DUNG:
 8. Nếu thiếu dữ liệu, dùng cụm từ cẩn thận như "thường", "trong nhiều trường hợp", "nên kiểm tra lại" thay vì bịa số liệu.
 9. Chú ý title và các heading phải có sức hút, để tăng CTR và giữ người đọc ở lại.
 10. Có thể dùng số liệu, 5W1H, so sánh, tranh luận, case thực tế, câu chuyện ngắn nếu hợp chủ đề.
+11. Ưu tiên "direct-answer-first": với truy vấn dạng best/top/how/what/why, câu đầu hoặc 2 câu đầu phải trả lời trực tiếp truy vấn trước khi mở rộng.
+12. Tối ưu cho AI search: mỗi section chỉ nên xoay quanh một ý chính rõ ràng để dễ được trích dẫn.
+13. Không kéo bài dài bằng filler. Nếu một ý không thêm giá trị mới, bỏ bớt thay vì kéo chữ.
 
 CHẤT LƯỢNG CẦN ĐẠT:
 - Đọc xong mỗi H2, người đọc phải có thêm một quyết định hoặc một hành động cụ thể.
@@ -140,24 +143,33 @@ ${outlineMd}
 
 YÊU CẦU THỰC THI:
 1. H1 phải chứa keyword "${args.keyword}" và giữ đúng ý định của outline.
-2. Intro 120-180 từ: có hook cụ thể, nhắc keyword trong 50 từ đầu, nói rõ vấn đề người đọc đang gặp.
-3. Độ dài bắt buộc: bài viết phải nằm trong khoảng ${minWords}-${maxWords} từ. Không được dừng lại sớm sau 300-800 từ.
-4. Phân bổ độ dài: intro 120-180 từ, mỗi H2 khoảng ${sectionBudget} từ, kết bài 120-180 từ. Nếu outline không có H3 thì viết trực tiếp theo H2, không tự ý đẻ quá nhiều H3 mới.
-5. Mỗi H2 cần có lập luận đầy đủ, ví dụ hoặc tình huống thực tế. Không viết mỗi mục quá mỏng.
-6. Nếu có H3, mỗi H3 chỉ trả lời một ý cụ thể, không lặp lại tiêu đề.
-7. Liên kết chặt giữa outline -> brand voice -> nội dung: mỗi heading trong outline phải được viết thành nội dung thật, đúng tone/từ vựng/CTA/nhịp câu/cách chuyển ý của brand voice nếu có.
+2. Mở bài phải theo nguyên tắc direct-answer-first: trả lời trực tiếp truy vấn trong 1-2 câu đầu, rồi mới mở rộng bằng hook, bối cảnh hoặc câu chuyện.
+3. Intro 120-180 từ: có hook cụ thể, nhắc keyword trong 50 từ đầu, nói rõ vấn đề người đọc đang gặp.
+4. Ngay sau intro, thêm một block trích dẫn dạng:
+> **Key Takeaways**
+> - ...
+> - ...
+> - ...
+Mỗi bullet phải là kết luận hoặc khuyến nghị thật, không phải mục lục.
+5. Độ dài bắt buộc: bài viết phải nằm trong khoảng ${minWords}-${maxWords} từ. Không được dừng lại sớm sau 300-800 từ.
+6. Với đa số bài blog, ưu tiên viết gọn trong khoảng 1.500-3.000 từ. Chỉ kéo lên gần mức tối đa nếu chủ đề thật sự cần chiều sâu.
+7. Phân bổ độ dài: intro 120-180 từ, mỗi H2 khoảng ${sectionBudget} từ, kết bài 120-180 từ. Nếu outline không có H3 thì viết trực tiếp theo H2, không tự ý đẻ quá nhiều H3 mới.
+8. Mỗi H2 cần có lập luận đầy đủ, ví dụ hoặc tình huống thực tế. Không viết mỗi mục quá mỏng.
+9. Nếu có H3, mỗi H3 chỉ trả lời một ý cụ thể, không lặp lại tiêu đề.
+10. Liên kết chặt giữa outline -> brand voice -> nội dung: mỗi heading trong outline phải được viết thành nội dung thật, đúng tone/từ vựng/CTA/nhịp câu/cách chuyển ý của brand voice nếu có.
 7b. Nếu có thông tin sản phẩm MKT liên quan, chèn vào đúng chỗ trong bài dưới dạng ví dụ, giải pháp, checklist, so sánh hoặc CTA mềm. Không biến mọi bài viết thành trang bán hàng.
-8. Dùng bảng Markdown khi cần so sánh, quy trình, checklist hoặc tiêu chí lựa chọn.
-9. Bold keyword chính 3-5 lần bằng **${args.keyword}** ở các vị trí tự nhiên.
-10. Bài viết phải có TOC/mục lục gần đầu bài bằng danh sách liên kết hoặc danh sách thường để người đọc scan nhanh.
-11. Trong bài nên có ít nhất 1 bảng Markdown và 1 vị trí để nhúng video nếu chủ đề phù hợp. Nếu không có link video thật, viết một dòng gợi ý video cần nhúng.
-12. Trong bài phải có gợi ý cho ít nhất 3 hình ảnh minh họa phù hợp với nội dung. Có thể đặt bằng dòng nghiêng dạng *Gợi ý hình ảnh:* ... tại đúng vị trí.
-13. Phải có internal link và external link ở dạng Markdown. External link chỉ trỏ tới nguồn uy tín, không trỏ đối thủ, và ưu tiên ghi chú (nofollow) nếu là link ngoài không thuộc doanh nghiệp.
-14. Từ khóa chính và từ khóa phụ phải được phân bố tự nhiên ở đầu, giữa và cuối bài. Tránh lặp lại một cụm từ quá dày.
-15. Nếu có ảnh trong bài, alt text/gợi ý alt phải hướng đến người dùng và nên chứa keyword chính hoặc biến thể hợp lý.
-16. Kết bài 120-180 từ: tổng kết insight chính và CTA rõ ràng.
-17. Nếu đến gần cuối mà bài chưa đạt ${minWords} từ, tiếp tục mở rộng các H2 mỏng bằng ví dụ, checklist, lỗi thường gặp, bảng so sánh hoặc case thực tế.
-18. Chỉ trả về Markdown thuần, bắt đầu ngay bằng "#".
+11. Dùng bảng Markdown khi cần so sánh, quy trình, checklist hoặc tiêu chí lựa chọn.
+12. Bold keyword chính 3-5 lần bằng **${args.keyword}** ở các vị trí tự nhiên.
+13. Bài viết phải có TOC/mục lục gần đầu bài bằng danh sách liên kết hoặc danh sách thường để người đọc scan nhanh.
+14. Trong bài nên có ít nhất 1 bảng Markdown và 1 vị trí để nhúng video nếu chủ đề phù hợp. Nếu không có link video thật, viết một dòng gợi ý video cần nhúng.
+15. Trong bài phải có gợi ý cho ít nhất 3 hình ảnh minh họa phù hợp với nội dung. Có thể đặt bằng dòng nghiêng dạng *Gợi ý hình ảnh:* ... tại đúng vị trí.
+16. Phải có tối thiểu 3 internal link và 2 external link ở dạng Markdown. External link chỉ trỏ tới nguồn uy tín, không trỏ đối thủ, và ưu tiên ghi chú (nofollow) nếu là link ngoài không thuộc doanh nghiệp.
+17. Từ khóa chính và từ khóa phụ phải được phân bố tự nhiên ở đầu, giữa và cuối bài. Tránh lặp lại một cụm từ quá dày.
+18. Nếu có ảnh trong bài, alt text/gợi ý alt phải hướng đến người dùng và nên chứa keyword chính hoặc biến thể hợp lý.
+19. Thêm FAQ ở cuối bài khi hợp chủ đề, ưu tiên 4-6 câu hỏi viết theo ngôn ngữ người dùng thật hay hỏi. Mỗi câu trả lời phải trả lời thẳng ở câu đầu rồi mới mở rộng.
+20. Kết bài 120-180 từ: tổng kết insight chính và CTA rõ ràng.
+21. Nếu đến gần cuối mà bài chưa đạt ${minWords} từ, tiếp tục mở rộng các H2 mỏng bằng ví dụ, checklist, lỗi thường gặp, bảng so sánh hoặc case thực tế.
+22. Chỉ trả về Markdown thuần, bắt đầu ngay bằng "#".
 
 QUY TẮC THEO FORMAT:
 ${formatRules}

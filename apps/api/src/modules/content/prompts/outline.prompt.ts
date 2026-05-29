@@ -43,6 +43,8 @@ TRIẾT LÝ TẠO OUTLINE:
 5. Không copy heading của SERP. Chỉ học ý định tìm kiếm và các gap cần bổ sung.
 6. Ưu tiên outline ngắn. Chỉ giữ lại những mục thật sự cần để viết bài.
 7. Trước khi ra outline, phải ngầm xác định keyword chính, keyword phụ, biến thể từ đồng nghĩa và search intent của người dùng.
+8. Với truy vấn dạng how/what/why/best/top, outline phải chuẩn bị sẵn một opening để bài viết có thể trả lời trực tiếp truy vấn ngay ở 1-2 câu đầu.
+9. Outline phải hỗ trợ featured snippet và AI search: heading rõ ý, mỗi section xoay quanh một ý chính, tránh trộn quá nhiều ý trong cùng một mục.
 
 OUTPUT BẮT BUỘC:
 - Chỉ trả về JSON thuần parse được bằng JSON.parse().
@@ -83,7 +85,7 @@ YÊU CẦU OUTLINE:
 5. Mặc định mỗi H2 không cần H3. Chỉ thêm tối đa 1 H3 nếu cần tách ý quan trọng.
 6. Nếu có H3 thì chỉ cần 1-2 bullet ngắn, không viết thành checklist máy móc.
 7. Cấu trúc tổng thể:
-   - Mở bài: hook + 5W1H + keyword chính trong 100 chữ đầu
+   - Mở bài: direct answer trước, sau đó hook + 5W1H + keyword chính trong 100 chữ đầu
    - Thân bài: kim tự tháp ngược, ý quan trọng đặt trước, có chèn keyword chính và key phụ tự nhiên
    - Kết bài: tóm tắt, nhắc lại keyword, CTA rõ ràng
 8. Nếu format là comparison/review, phải có H2 về tiêu chí đánh giá hoặc bảng so sánh.
@@ -95,6 +97,7 @@ YÊU CẦU OUTLINE:
 14. Mục tiêu là một outline ngắn, dễ duyệt nhanh trong admin, không phải một bản draft quá chi tiết.
 15. Heading phải được làm mới lại bằng ngôn ngữ riêng, có thể chèn từ khóa phụ, biến thể từ khóa, nhưng không được nghe máy móc.
 16. Nếu nhận thấy SERP đang on top theo một angle rõ, có thể đưa ra một lựa chọn tham khảo nhưng vẫn ưu tiên bài mới có điểm nhìn riêng.
+17. Hãy chừa chỗ hợp lý để bài viết có thể thêm block "Key Takeaways", 1 bảng so sánh/quy trình, ít nhất 3 internal link, 2 external link và một FAQ ngắn nếu chủ đề phù hợp.
 
 SCHEMA JSON BẮT BUỘC:
 {
