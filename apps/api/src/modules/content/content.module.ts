@@ -9,6 +9,7 @@ import { ArticleEditorService } from './services/article-editor.service';
 import { ArticlePostProcessService } from './services/article-post-process.service';
 import { ContentBatchService } from './services/content-batch.service';
 import { ContentBatchRunnerService } from './services/content-batch-runner.service';
+import { BrandVoiceSimilarityService } from './services/brand-voice-similarity.service';
 import { ContentBatchQueue } from './workers/content-batch.queue';
 import { ContentBatchProcessor } from './workers/content-batch.processor';
 
@@ -24,6 +25,7 @@ import { ContentBatchProcessor } from './workers/content-batch.processor';
     ArticleService,
     ArticleEditorService,
     ArticlePostProcessService,
+    BrandVoiceSimilarityService,
     ContentBatchService,
     ContentBatchRunnerService,
     { provide: 'ContentBatchRunnerService', useExisting: ContentBatchRunnerService },

@@ -143,18 +143,41 @@ ${block}
   },
   "addressing": {
     "primary": "string (ví dụ: 'bạn', 'quý vị', 'anh chị', 'mình', ...)",
-    "formality": "low|medium|high"
+    "formality": "low|medium|high",
+    "self_reference": "string (ví dụ: 'chúng tôi', 'team', 'mình')"
   },
   "signature_phrases": ["cụm từ đặc trưng", ...],
   "vocabulary": {
     "complexity": "simple|medium|advanced",
-    "domain_terms": ["từ khoá lĩnh vực", ...]
+    "domain_terms": ["từ khoá lĩnh vực", ...],
+    "preferred": ["cụm từ nên ưu tiên", ...],
+    "avoided": ["cụm từ nên tránh", ...]
   },
   "emoji_usage": {
     "enabled": true|false,
     "density": "none|sparse|medium|heavy",
     "common_emojis": ["😊", "🚀", ...]
   },
+  "paragraph_rhythm": {
+    "avg_sentences_per_paragraph": 1-8,
+    "preferred_paragraph_style": "mô tả nhịp đoạn, ví dụ: 'đoạn ngắn, chốt nhanh, ít lan man'"
+  },
+  "heading_style": {
+    "h2_pattern": "mô tả pattern H2",
+    "h3_pattern": "mô tả pattern H3",
+    "prefers_questions": true|false,
+    "prefers_numbers": true|false
+  },
+  "transitions": {
+    "preferred": ["từ chuyển ý nên dùng", ...],
+    "avoided": ["từ chuyển ý nên tránh", ...]
+  },
+  "persuasion": {
+    "evidence_style": "mô tả cách dùng ví dụ/bằng chứng/case",
+    "sales_intensity": "low|medium|high",
+    "objection_handling": "mô tả cách xử lý phản đối hoặc lưu ý"
+  },
+  "forbidden_phrases": ["cụm từ AI/generic nên cấm", ...],
   "patterns": {
     "opening_style": "mô tả cách mở bài (1-2 câu)",
     "closing_style": "mô tả cách kết bài (1-2 câu)",
@@ -165,6 +188,8 @@ ${block}
 ===== YÊU CẦU =====
 - KHÔNG dùng markdown fence. Bắt đầu trực tiếp bằng {.
 - "signature_phrases" tối thiểu 3, tối đa 10 cụm thật sự đặc trưng (lặp lại ≥2 lần qua các bài, hoặc rất riêng biệt).
+- "preferred" và "avoided" phải ưu tiên những từ/cụm thật sự thấy rõ trong bài mẫu, không suy đoán chung chung.
+- "forbidden_phrases" nên nêu ra các cụm sáo rỗng, kiểu AI hoặc kiểu diễn đạt lệch brand nếu thật sự thấy không hợp với mẫu.
 - Mọi giá trị phải dựa trên BẰNG CHỨNG trong bài mẫu — không bịa.
 
 Bắt đầu trả về JSON:`;
@@ -232,14 +257,35 @@ Bắt đầu trả về JSON:`;
       addressing: {
         primary: usesBan ? 'bạn' : 'người đọc',
         formality: 'medium',
+        self_reference: /chúng tôi/i.test(corpus) ? 'chúng tôi' : 'mình',
       },
       signature_phrases: [],
-      vocabulary: { complexity: 'medium', domain_terms: [] },
+      vocabulary: { complexity: 'medium', domain_terms: [], preferred: [], avoided: [] },
       emoji_usage: {
         enabled: usesEmoji,
         density: usesEmoji ? 'sparse' : 'none',
         common_emojis: [],
       },
+      paragraph_rhythm: {
+        avg_sentences_per_paragraph: 2,
+        preferred_paragraph_style: 'đoạn ngắn, đi thẳng ý chính, ít lan man',
+      },
+      heading_style: {
+        h2_pattern: 'thực dụng, giải quyết trực tiếp vấn đề',
+        h3_pattern: 'bổ sung ý nhỏ khi thật sự cần',
+        prefers_questions: /\?/u.test(corpus),
+        prefers_numbers: /\b\d+\b/u.test(corpus),
+      },
+      transitions: {
+        preferred: [],
+        avoided: ['hãy cùng tìm hiểu', 'trong bài viết này'],
+      },
+      persuasion: {
+        evidence_style: 'ưu tiên ví dụ ngắn và giải thích trực tiếp',
+        sales_intensity: 'medium',
+        objection_handling: 'nêu lưu ý thực tế trước khi kêu gọi hành động',
+      },
+      forbidden_phrases: ['hãy cùng tìm hiểu', 'trong bài viết này'],
       patterns: {
         opening_style: 'hook then context',
         closing_style: 'summary with CTA',

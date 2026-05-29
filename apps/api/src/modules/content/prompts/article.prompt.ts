@@ -14,6 +14,23 @@ export interface BrandVoiceProfileLite {
   vocabulary?: { preferred?: string[]; avoided?: string[] };
   emoji_usage?: { enabled?: boolean; density?: string | number; common_emojis?: string[] };
   patterns?: { opening_style?: string; closing_style?: string; cta_style?: string };
+  paragraph_rhythm?: {
+    avg_sentences_per_paragraph?: number;
+    preferred_paragraph_style?: string;
+  };
+  heading_style?: {
+    h2_pattern?: string;
+    h3_pattern?: string;
+    prefers_questions?: boolean;
+    prefers_numbers?: boolean;
+  };
+  transitions?: { preferred?: string[]; avoided?: string[] };
+  persuasion?: {
+    evidence_style?: string;
+    sales_intensity?: string;
+    objection_handling?: string;
+  };
+  forbidden_phrases?: string[];
 }
 
 export interface ReferenceArticleLite {
@@ -29,6 +46,7 @@ export interface BuildArticlePromptArgs {
   targetWordCount: number;
   language: string;
   brandVoice?: {
+    description?: string | null;
     profile: BrandVoiceProfileLite;
     referenceArticles: ReferenceArticleLite[];
   } | null;
@@ -58,6 +76,11 @@ OUTPUT BAT BUOC:
 - Dung dung cau truc H2/H3 theo outline da cung cap. Khong ep moi H2 phai co H3.
 - Khong tao metadata rieng, khong chen ghi chu noi bo, khong noi "duoi day la".
 - Bai viet phai doc nhu mot bai SEO hoan chinh da san sang dua vao CMS, khong phai ban nhap y tuong.
+
+UU TIEN THUC THI:
+- Neu co brand voice, brand voice la luat uu tien cao hon van phong AI chung. Ban phai bat chuoc cach xung ho, nhip cau, cach mo/ket bai, cach chuyen y va muc do thuyet phuc cua brand do.
+- Khong duoc viet theo giong van "AI tro ly", "bai mau SEO", "noi dung tong hop". Neu brand voice va tone mac dinh xung dot, uu tien brand voice.
+- Tuyet doi khong dung cac cum tu bi cam, cac cum tu brand muon tranh, hoac cac mau cau may moc. Chi dung cum tu dac trung cua brand khi dat vao ngu canh tu nhien.
 
 DNA NOI DUNG:
 1. Viet cho nguoi doc tren dien thoai: cau 10-18 tu la chinh, doan 2-4 cau, moi doan khong qua 60 tu.
@@ -104,7 +127,7 @@ YEU CAU THUC THI:
 4. Phan bo do dai: intro 120-180 tu, moi H2 khoang ${sectionBudget} tu, ket bai 120-180 tu. Neu outline khong co H3 thi viet truc tiep theo H2, khong tu y de qua nhieu H3 moi.
 5. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
 6. Neu co H3, moi H3 chi tra loi mot y cu the, khong lap lai tieu de.
-7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA cua brand voice neu co.
+7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA/nhip cau/cach chuyen y cua brand voice neu co.
 8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
 9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
 10. Bai viet phai co TOC/muc luc gan dau bai bang danh sach lien ket hoac danh sach thuong de nguoi doc scan nhanh.
@@ -128,6 +151,7 @@ function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice
 
   const bv = brandVoice.profile;
   const lines: string[] = ['', 'BRAND VOICE BAT BUOC AP DUNG:'];
+  if (brandVoice.description?.trim()) lines.push(`- Huong dan them tu admin: ${brandVoice.description.trim()}`);
   if (bv.brand_name) lines.push(`- Ten brand: ${bv.brand_name}`);
   if (bv.tone?.primary) lines.push(`- Tone chinh: ${bv.tone.primary}`);
   if (bv.tone?.secondary?.length) lines.push(`- Tone phu: ${bv.tone.secondary.join(', ')}`);
@@ -158,6 +182,45 @@ function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice
   if (bv.patterns?.opening_style) lines.push(`- Kieu mo bai: ${bv.patterns.opening_style}`);
   if (bv.patterns?.closing_style) lines.push(`- Kieu ket bai: ${bv.patterns.closing_style}`);
   if (bv.patterns?.cta_style) lines.push(`- Kieu CTA: ${bv.patterns.cta_style}`);
+  if (bv.paragraph_rhythm?.avg_sentences_per_paragraph) {
+    lines.push(
+      `- Nhip doan van: trung binh ${bv.paragraph_rhythm.avg_sentences_per_paragraph} cau/doan`,
+    );
+  }
+  if (bv.paragraph_rhythm?.preferred_paragraph_style) {
+    lines.push(`- Kieu doan van uu tien: ${bv.paragraph_rhythm.preferred_paragraph_style}`);
+  }
+  if (bv.heading_style?.h2_pattern) lines.push(`- Kieu dat H2: ${bv.heading_style.h2_pattern}`);
+  if (bv.heading_style?.h3_pattern) lines.push(`- Kieu dat H3: ${bv.heading_style.h3_pattern}`);
+  if (typeof bv.heading_style?.prefers_questions === 'boolean') {
+    lines.push(
+      `- Heading dang cau hoi: ${bv.heading_style.prefers_questions ? 'uu tien' : 'khong uu tien'}`,
+    );
+  }
+  if (typeof bv.heading_style?.prefers_numbers === 'boolean') {
+    lines.push(
+      `- Heading co so dem: ${bv.heading_style.prefers_numbers ? 'uu tien' : 'khong uu tien'}`,
+    );
+  }
+  if (bv.transitions?.preferred?.length) {
+    lines.push(`- Cum chuyen y uu tien: ${bv.transitions.preferred.slice(0, 10).join(', ')}`);
+  }
+  if (bv.transitions?.avoided?.length) {
+    lines.push(`- Cum chuyen y can tranh: ${bv.transitions.avoided.slice(0, 10).join(', ')}`);
+  }
+  if (bv.persuasion?.evidence_style) {
+    lines.push(`- Cach dua bang chung: ${bv.persuasion.evidence_style}`);
+  }
+  if (bv.persuasion?.sales_intensity) {
+    lines.push(`- Muc do ban hang: ${bv.persuasion.sales_intensity}`);
+  }
+  if (bv.persuasion?.objection_handling) {
+    lines.push(`- Cach xu ly phan van: ${bv.persuasion.objection_handling}`);
+  }
+  if (bv.forbidden_phrases?.length) {
+    lines.push(`- Cum tu cam dung: ${bv.forbidden_phrases.slice(0, 12).join(', ')}`);
+  }
+  lines.push('- Muc tieu la de nguoi doc co cam giac bai nay do chinh brand viet, khong phai AI phan tich ho.');
 
   if (brandVoice.referenceArticles.length) {
     lines.push('', 'BAI MAU DE BAT CHUOC PHONG CACH, KHONG COPY NOI DUNG:');

@@ -14,6 +14,10 @@ import {
   type ReferenceArticleLite,
 } from '../prompts/article.prompt';
 import { ArticlePostProcessService } from './article-post-process.service';
+import {
+  BrandVoiceSimilarityService,
+  type BrandVoiceSimilarityReport,
+} from './brand-voice-similarity.service';
 import { type GenerateArticleDto } from '../dto/generate-article.dto';
 import { type ListArticlesQueryDto, type UpdateArticleDto } from '../dto/update-article.dto';
 import { marked } from 'marked';
@@ -78,6 +82,7 @@ export class ArticleService {
     private readonly llm: LlmRegistry,
     private readonly postProcess: ArticlePostProcessService,
     private readonly audit: AuditService,
+    private readonly brandVoiceSimilarity: BrandVoiceSimilarityService,
     private readonly eventBus: EventBusService,
   ) {}
 
@@ -339,6 +344,19 @@ export class ArticleService {
       intent: dto.tone ? undefined : 'info',
     });
 
+    const brandVoiceSimilarity = brandVoice
+      ? this.brandVoiceSimilarity.evaluate({
+          markdown: processed.markdownProcessed,
+          profile: brandVoice.profile,
+          referenceArticles: brandVoice.referenceArticles,
+        })
+      : null;
+
+    const contentScoreBreakdown = this.mergeBrandVoiceBreakdown(
+      auditReport.breakdown,
+      brandVoiceSimilarity,
+    );
+
     // Persist.
     const articleId = uuidv7();
     const slug = this.toSlug(dto.outline.h1);
@@ -357,7 +375,7 @@ export class ArticleService {
         format,
         wordCount: processed.word_count,
         contentScore: auditReport.score,
-        scoreBreakdownJson: auditReport.breakdown as unknown as object,
+        scoreBreakdownJson: contentScoreBreakdown as unknown as object,
         status: 'draft',
         brandVoiceId: brandVoice ? dto.brand_voice_id : null,
         aiModelUsed: provider.name + ':' + (dto.model ?? 'default'),
@@ -370,6 +388,7 @@ export class ArticleService {
           enable_schema_markup: enableSchemaMarkup,
           is_stub: finishMeta.isStub ?? !provider.available,
           audit_prioritized: auditReport.prioritized,
+          brand_voice_similarity: brandVoiceSimilarity,
         },
       },
     });
@@ -386,7 +405,7 @@ export class ArticleService {
       type: 'complete',
       article_id: articleId,
       content_score: auditReport.score,
-      content_score_breakdown: auditReport.breakdown,
+      content_score_breakdown: contentScoreBreakdown,
       word_count: processed.word_count,
       meta_title: processed.meta_title,
       meta_description: processed.meta_description,
@@ -401,7 +420,14 @@ export class ArticleService {
   private async loadBrandVoiceContext(
     brandVoiceId: string | undefined,
     userId: string,
-  ): Promise<{ profile: BrandVoiceProfileLite; referenceArticles: ReferenceArticleLite[] } | null> {
+  ): Promise<
+    | {
+        description?: string | null;
+        profile: BrandVoiceProfileLite;
+        referenceArticles: ReferenceArticleLite[];
+      }
+    | null
+  > {
     if (!brandVoiceId) return null;
     const row = await this.prisma.brandVoice.findFirst({
       where: { id: brandVoiceId, userId, deletedAt: null },
@@ -413,10 +439,41 @@ export class ArticleService {
       });
     }
     return {
+      description: row.description,
       profile: row.profileJson as unknown as BrandVoiceProfileLite,
       referenceArticles: Array.isArray(row.referenceArticles)
         ? (row.referenceArticles as unknown as ReferenceArticleLite[])
         : [],
+    };
+  }
+
+  private mergeBrandVoiceBreakdown(
+    auditBreakdown: ScoreBreakdown,
+    brandVoiceSimilarity: BrandVoiceSimilarityReport | null,
+  ): ScoreBreakdown {
+    if (!brandVoiceSimilarity) return auditBreakdown;
+
+    const score = brandVoiceSimilarity.score;
+    return {
+      ...auditBreakdown,
+      brand_voice_similarity: {
+        rule_id: 'brand_voice_similarity',
+        name: 'Brand voice similarity',
+        score,
+        weight: 0,
+        status: score >= 80 ? 'good' : score >= 60 ? 'warning' : 'fail',
+        message:
+          brandVoiceSimilarity.suggestions[0] ??
+          'Bai viet da duoc doi chieu voi profile brand voice va bai mau.',
+        suggestions: brandVoiceSimilarity.suggestions.map((text) => ({
+          text,
+          action: 'manual' as const,
+        })),
+        metrics: {
+          signals_checked: Object.keys(brandVoiceSimilarity.breakdown).length,
+          similarity_score: score,
+        },
+      },
     };
   }
 
