@@ -45,6 +45,23 @@ export interface BuildArticlePromptArgs {
   format: OutlineFormat;
   targetWordCount: number;
   language: string;
+  productContext?: {
+    brandSummary: {
+      brand: string;
+      strengths: string[];
+      contact: string[];
+    };
+    matchedProducts: Array<{
+      name: string;
+      url: string;
+      tagline: string;
+      whyRelevant: string[];
+      usp: string[];
+      audience: string[];
+      painPoints: string[];
+      socialProof: string[];
+    }>;
+  } | null;
   brandVoice?: {
     description?: string | null;
     profile: BrandVoiceProfileLite;
@@ -98,6 +115,7 @@ CHAT LUONG CAN DAT:
 - Doc xong moi H2, nguoi doc phai co them mot quyet dinh hoac mot hanh dong cu the.
 - Bai viet phai vuot outline doi thu bang chieu sau, vi du thuc te va goc nhin rieng.
 - Ket luan khong tom tat dai dong; chot lai insight va CTA cu the.${toneLine}
+${buildProductContextInjection(args.productContext)}
 ${buildBrandVoiceInjection(args.brandVoice)}`;
 }
 
@@ -128,6 +146,7 @@ YEU CAU THUC THI:
 5. Moi H2 can co lap luan day du, vi du hoac tinh huong thuc te. Khong viet moi muc qua mong.
 6. Neu co H3, moi H3 chi tra loi mot y cu the, khong lap lai tieu de.
 7. Lien ket chat giua outline -> brand voice -> noi dung: moi heading trong outline phai duoc viet thanh noi dung that, dung tone/tu vung/CTA/nhip cau/cach chuyen y cua brand voice neu co.
+7b. Neu co thong tin san pham MKT lien quan, chen vao dung cho trong bai duoi dang vi du, giai phap, checklist, so sanh hoac CTA mem. Khong bien moi bai viet thanh trang ban hang.
 8. Dung bang Markdown khi can so sanh, quy trinh, checklist hoac tieu chi lua chon.
 9. Bold keyword chinh 3-5 lan bang **${args.keyword}** o cac vi tri tu nhien.
 10. Bai viet phai co TOC/muc luc gan dau bai bang danh sach lien ket hoac danh sach thuong de nguoi doc scan nhanh.
@@ -144,6 +163,36 @@ QUY TAC THEO FORMAT:
 ${formatRules}
 
 Bat dau viet bai:`;
+}
+
+function buildProductContextInjection(
+  productContext: BuildArticlePromptArgs['productContext'],
+): string {
+  if (!productContext || productContext.matchedProducts.length === 0) return '';
+
+  const lines: string[] = ['', 'PRODUCT CONTEXT - CHI DUNG KHI THUC SU LIEN QUAN:'];
+  lines.push(`- Thuong hieu: ${productContext.brandSummary.brand}`);
+  lines.push(
+    `- Diem manh chung: ${productContext.brandSummary.strengths.join(' | ')}`,
+  );
+  lines.push(
+    '- Cach dung trong bai: chi chen san pham khi no giai quyet dung pain point cua keyword/outline; uu tien giong giai phap, vi du trien khai, checklist, hoac CTA mem o cuoi bai.',
+  );
+  lines.push(
+    '- Khong duoc nhac ten san pham mot cach go ep trong moi H2. Neu chu de khong lien quan truc tiep, chi nhac rat nhe hoac bo qua.',
+  );
+
+  productContext.matchedProducts.forEach((item, index) => {
+    lines.push(`- San pham lien quan ${index + 1}: ${item.name} - ${item.tagline}`);
+    lines.push(`  URL: ${item.url}`);
+    lines.push(`  Vi sao lien quan: ${item.whyRelevant.join(' | ')}`);
+    lines.push(`  USP: ${item.usp.join(' | ')}`);
+    lines.push(`  Doi tuong phu hop: ${item.audience.join(' | ')}`);
+    lines.push(`  Pain point giai quyet: ${item.painPoints.join(' | ')}`);
+    lines.push(`  Social proof: ${item.socialProof.join(' | ')}`);
+  });
+
+  return `\n${lines.join('\n')}`;
 }
 
 function buildBrandVoiceInjection(brandVoice: BuildArticlePromptArgs['brandVoice']): string {

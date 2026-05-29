@@ -20,6 +20,7 @@ import {
   BrandVoiceSimilarityService,
   type BrandVoiceSimilarityReport,
 } from './brand-voice-similarity.service';
+import { MktProductContextService } from './mkt-product-context.service';
 import { type GenerateArticleDto } from '../dto/generate-article.dto';
 import { type ListArticlesQueryDto, type UpdateArticleDto } from '../dto/update-article.dto';
 import { marked } from 'marked';
@@ -87,6 +88,7 @@ export class ArticleService {
     private readonly audit: AuditService,
     private readonly images: ImagesService,
     private readonly quotas: QuotaService,
+    private readonly mktProductContext: MktProductContextService,
     private readonly brandVoiceSimilarity: BrandVoiceSimilarityService,
     private readonly eventBus: EventBusService,
   ) {}
@@ -254,6 +256,11 @@ export class ArticleService {
 
     // Brand voice context (inline lookup for now — Sprint 5.6 wraps in service).
     const brandVoice = await this.loadBrandVoiceContext(dto.brand_voice_id, userId);
+    const productContext = this.mktProductContext.buildForArticle({
+      keyword,
+      title: dto.outline.h1,
+      sections: dto.outline.sections.map((section) => section.h2),
+    });
 
     const systemPrompt = buildArticleSystemPrompt({
       keyword,
@@ -262,6 +269,7 @@ export class ArticleService {
       format,
       targetWordCount,
       language,
+      productContext,
       brandVoice,
     });
     const userPrompt = buildArticleUserPrompt({
@@ -271,6 +279,7 @@ export class ArticleService {
       format,
       targetWordCount,
       language,
+      productContext,
       brandVoice,
     });
 
@@ -374,6 +383,7 @@ export class ArticleService {
       is_stub: finishMeta.isStub ?? !provider.available,
       audit_prioritized: auditReport.prioritized,
       brand_voice_similarity: brandVoiceSimilarity,
+      mkt_product_context: productContext,
     } as unknown as Prisma.InputJsonValue;
 
     await this.prisma.article.create({

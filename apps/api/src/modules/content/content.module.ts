@@ -11,6 +11,7 @@ import { ArticlePostProcessService } from './services/article-post-process.servi
 import { ContentBatchService } from './services/content-batch.service';
 import { ContentBatchRunnerService } from './services/content-batch-runner.service';
 import { BrandVoiceSimilarityService } from './services/brand-voice-similarity.service';
+import { MktProductContextService } from './services/mkt-product-context.service';
 import { ContentBatchQueue } from './workers/content-batch.queue';
 import { ContentBatchProcessor } from './workers/content-batch.processor';
 
@@ -27,6 +28,7 @@ import { ContentBatchProcessor } from './workers/content-batch.processor';
     ArticleEditorService,
     ArticlePostProcessService,
     BrandVoiceSimilarityService,
+    MktProductContextService,
     ContentBatchService,
     ContentBatchRunnerService,
     { provide: 'ContentBatchRunnerService', useExisting: ContentBatchRunnerService },
