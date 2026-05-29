@@ -10,7 +10,6 @@ import { uuidv7 } from 'uuidv7';
 import { ErrorCode } from '@mkt-seo/shared';
 import { PrismaService } from '../../../common/services/prisma.service';
 import { EventBusService } from '../../../common/services/event-bus.service';
-import { AiSettingsService } from '../../admin/ai-settings.service';
 import { StorageService } from '../storage/storage.service';
 import { ImageProcessor } from '../storage/image-processor.service';
 import { ImageSafetyService } from './image-safety.service';
@@ -92,7 +91,6 @@ export class ImagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
-    private readonly settings: AiSettingsService,
     private readonly storage: StorageService,
     private readonly processor: ImageProcessor,
     private readonly safety: ImageSafetyService,
