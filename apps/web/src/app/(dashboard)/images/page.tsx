@@ -89,12 +89,14 @@ export default function ImagesPage() {
             <ul className="ml-4 list-disc text-amber-800">
               {stubFlags.provider && (
                 <li>
-                  Provider chua cau hinh -> anh la placehold.co. Can Yescale key trong admin
+                  Provider chua cau hinh {'->'} anh la placehold.co. Can Yescale key trong admin
                   hoac REPLICATE_API_TOKEN / OPENAI_API_KEY that de provider live hoat dong.
                 </li>
               )}
               {stubFlags.storage && (
-                <li>R2 chua cau hinh -> URL tra ve la URL nguon truc tiep, khong luu tren CDN.</li>
+                <li>
+                  R2 chua cau hinh {'->'} URL tra ve la URL nguon truc tiep, khong luu tren CDN.
+                </li>
               )}
             </ul>
           </CardContent>
