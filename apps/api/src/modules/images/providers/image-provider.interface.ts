@@ -4,7 +4,7 @@
  * via the `model` parameter.
  */
 
-export type ImageModel = 'flux-schnell' | 'dalle-3' | 'yescale-gpt-image-1' | 'stub';
+export type ImageModel = 'flux-schnell' | 'dalle-3' | 'yescale-gpt-image-2' | 'stub';
 export type ImageStyle =
   | 'realistic'
   | 'illustration'
@@ -64,7 +64,7 @@ export function resolveImageModel(
   | typeof IMAGE_PROVIDER_DALLE
   | typeof IMAGE_PROVIDER_YESCALE {
   if (model === 'dalle-3') return IMAGE_PROVIDER_DALLE;
-  if (model === 'yescale-gpt-image-1') return IMAGE_PROVIDER_YESCALE;
+  if (model === 'yescale-gpt-image-2') return IMAGE_PROVIDER_YESCALE;
   return IMAGE_PROVIDER_FLUX;
 }
 

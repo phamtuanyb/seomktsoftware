@@ -22,7 +22,7 @@ export default function ImagesPage() {
   const [style, setStyle] = useState<ImageStyle>('mkt-brand');
   const [aspect, setAspect] = useState<ImageAspectRatio>('16:9');
   const [count, setCount] = useState(2);
-  const [model, setModel] = useState<ImageModel>('yescale-gpt-image-1');
+  const [model, setModel] = useState<ImageModel>('yescale-gpt-image-2');
   const [generating, setGenerating] = useState(false);
   const [images, setImages] = useState<ImageRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function ImagesPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Hinh anh AI</h1>
         <p className="text-sm text-muted-foreground">
-          Section 8 TN6 - Yescale GPT Image 1 duoc uu tien neu da cau hinh key, fallback ve
+          Section 8 TN6 - Yescale GPT Image 2 duoc uu tien neu da cau hinh key, fallback ve
           Flux Schnell / DALL-E 3 khi can. Auto alt text qua Claude Haiku. Stub mode dung
           placehold.co khi chua co key.
         </p>
@@ -178,7 +178,7 @@ export default function ImagesPage() {
                   value={model}
                   onChange={(e) => setModel(e.target.value as ImageModel)}
                 >
-                  <option value="yescale-gpt-image-1">Yescale GPT Image 1</option>
+                  <option value="yescale-gpt-image-2">Yescale GPT Image 2</option>
                   <option value="flux-schnell">Flux Schnell ($0.003)</option>
                   <option value="dalle-3">DALL-E 3 HD ($0.08)</option>
                 </Select>

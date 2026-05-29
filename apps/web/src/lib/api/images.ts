@@ -8,7 +8,7 @@ export type ImageStyle =
   | 'infographic'
   | 'mkt-brand';
 export type ImageAspectRatio = '16:9' | '4:3' | '1:1';
-export type ImageModel = 'flux-schnell' | 'dalle-3' | 'yescale-gpt-image-1';
+export type ImageModel = 'flux-schnell' | 'dalle-3' | 'yescale-gpt-image-2';
 
 export interface ImageRecord {
   id: string;

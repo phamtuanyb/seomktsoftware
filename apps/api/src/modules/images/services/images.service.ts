@@ -423,7 +423,7 @@ export class ImagesService {
   }
 
   private defaultModel(): ImageModel {
-    return this.settings.hasConfiguredKey('yescale') ? 'yescale-gpt-image-1' : 'flux-schnell';
+    return this.yescale.available ? 'yescale-gpt-image-2' : 'flux-schnell';
   }
 
   private async processSingleImage(opts: {

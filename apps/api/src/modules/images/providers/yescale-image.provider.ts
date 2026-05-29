@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { AiSettingsService } from '../../admin/ai-settings.service';
 import {
@@ -10,26 +11,35 @@ import {
 } from './image-provider.interface';
 
 const YESCALE_IMAGE_BASE_URL = 'https://api.yescale.vip/v1';
-const YESCALE_IMAGE_MODEL = 'gpt-image-1';
+const YESCALE_IMAGE_MODEL = 'gpt-image-2';
 
 @Injectable()
 export class YescaleImageProvider implements ImageProvider {
-  readonly model: ImageModel = 'yescale-gpt-image-1';
-  readonly available: boolean;
-
   private readonly logger = new Logger(YescaleImageProvider.name);
+  private readonly envKey: string;
 
-  constructor(private readonly settings: AiSettingsService) {
-    this.available = this.settings.hasConfiguredKey('yescale');
+  readonly model: ImageModel = 'yescale-gpt-image-2';
+
+  get available(): boolean {
+    return !this.isPlaceholder(this.envKey) || this.settings.hasConfiguredKey('yescale');
+  }
+
+  constructor(
+    cfg: ConfigService,
+    private readonly settings: AiSettingsService,
+  ) {
+    this.envKey = cfg.get<string>('ai.yescaleImageApiKey') ?? process.env.YESCALE_IMAGE_API_KEY ?? '';
     if (!this.available) {
-      this.logger.warn('YescaleImageProvider running in STUB mode - YESCALE_API_KEY is missing');
+      this.logger.warn(
+        'YescaleImageProvider running in STUB mode - YESCALE_IMAGE_API_KEY / YESCALE_API_KEY is missing',
+      );
     }
   }
 
   async generate(req: ImageGenerateRequest): Promise<ImageGenerateResult> {
     const started = Date.now();
     const { width, height } = aspectToDimensions(req.aspectRatio);
-    const key = await this.settings.getApiKey('yescale');
+    const key = !this.isPlaceholder(this.envKey) ? this.envKey : await this.settings.getApiKey('yescale');
 
     if (!key) {
       return this.stub(req, started, 'no yescale key');
@@ -110,5 +120,14 @@ export class YescaleImageProvider implements ImageProvider {
       duration_ms: Date.now() - started,
       ...(error ? { error } : {}),
     };
+  }
+
+  private isPlaceholder(value: string | undefined): boolean {
+    if (!value) return true;
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return true;
+    if (trimmed.endsWith('...')) return true;
+    if (trimmed === 'sk-...') return true;
+    return false;
   }
 }
